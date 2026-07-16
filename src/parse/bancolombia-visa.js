@@ -19,7 +19,7 @@
 //
 // Leer la última cifra de la fila —que fue lo primero que hizo el parser
 // genérico— da el saldo pendiente, o sea que reporta la deuda entera como
-// "gasto del mes". Absurdo, y creíble a primera vista: por eso está acá escrito.
+// "gasto del mes". Absurdo, y creíble a primera vista: por eso está aquí escrito.
 
 import { parseNumero, parseTasa } from './numero.js';
 import { parseFecha } from './fecha.js';
@@ -158,7 +158,7 @@ export function periodoDelExtracto(lineas) {
 
 /**
  * La tasa E.A. del extracto. Ponderada por saldo pendiente: la tasa que te
- * importa es la de la plata que más debés, no el promedio simple de las filas.
+ * importa es la de la plata que más debes, no el promedio simple de las filas.
  */
 export function tasaEADelExtracto(transacciones) {
   const conTasa = transacciones.filter((t) => t.tasaEA > 0 && t.saldoPendiente > 0);

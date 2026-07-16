@@ -1,7 +1,7 @@
 // Constantes tributarias y tarifas típicas de Colombia.
 //
 // Todas son EDITABLES desde la interfaz, porque cambian por banco y por año.
-// Acá solo viven los valores por defecto.
+// Aquí solo viven los valores por defecto.
 
 export const TARIFAS = {
   // IVA general en Colombia. Se aplica sobre comisiones y cuotas de manejo.
@@ -17,7 +17,7 @@ export const TARIFAS = {
   comisionInternacional: 0.03,
 
   // Spread estimado entre la TRM oficial y la tasa que aplica el banco/franquicia.
-  // También varía. Sirve para estimar cuánto de más pagás por facturar en dólares.
+  // También varía. Sirve para estimar cuánto de más pagas por facturar en dólares.
   spreadTRM: 0.02,
 };
 
@@ -27,7 +27,7 @@ export const TARIFAS = {
 export const USURA = {
   valor: null,
   fuente: 'https://www.superfinanciera.gov.co/publicaciones/60955/tasas-de-interes-bancario-corriente-60955/',
-  nota: 'La Superfinanciera publica la tasa de usura cada mes. Consultala y escribila para comparar.',
+  nota: 'La Superfinanciera publica la tasa de usura cada mes. Consúltala y escríbela para comparar.',
 };
 
 export const SUPUESTOS_MINIMO = {

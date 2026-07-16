@@ -1,6 +1,6 @@
 # Plata Clara
 
-**Subí el extracto de tu banco y mirá cuánto te costó de verdad.** Cuánto pagaste
+**Sube el extracto de tu banco y mira cuánto te costó de verdad.** Cuánto pagaste
 en intereses y cargos, y cuánto en suscripciones — incluyendo lo que el banco le
 monta encima y no aparece en el precio de lista.
 
@@ -39,11 +39,11 @@ Plata Clara pone esos dos números al lado, en pesos, en una pantalla.
 
 **→ [plata-clara en vivo](https://jarueda97.github.io/plata-clara/)**
 
-Arrastrá tu extracto, revisá que esté bien leído, y mirá el daño. Nada se sube:
-la página se descarga una vez y el análisis corre en tu máquina. También podés
+Arrastra tu extracto, revisa que esté bien leído, y mira el daño. Nada se sube:
+la página se descarga una vez y el análisis corre en tu máquina. También puedes
 [correrla local](#correlo-local).
 
-**Un consejo:** si podés, soltá dos o tres meses de una. Con un solo mes no
+**Un consejo:** si puedes, suelta dos o tres meses de una. Con un solo mes no
 podemos detectar recurrencia por repetición (nada se repite todavía), así que
 reconocemos las suscripciones por nombre de comercio contra un diccionario. Eso
 encuentra a Netflix y a ChatGPT, pero no al gimnasio de tu barrio. Con dos meses
@@ -54,13 +54,13 @@ o más, además detectamos cualquier cobro que se repita cada ~30 días.
 Tu extracto no sale de tu navegador. No es una promesa de marketing, es
 arquitectura: **no hay backend al cual mandarlo.**
 
-Verificalo vos mismo:
+Verifícalo tú mismo:
 
-1. Abrí las herramientas de desarrollo (F12) → pestaña **Red**.
-2. Subí tu extracto.
+1. Abre las herramientas de desarrollo (F12) → pestaña **Red**.
+2. Sube tu extracto.
 3. No vas a ver ninguna petición saliendo con tus datos.
 
-O más fácil: desconectá el wifi y usalo igual. Funciona.
+O más fácil: desconecta el wifi y usalo igual. Funciona.
 
 **Cero terceros.** Las fuentes están servidas desde el propio repo, no desde
 Google. No es purismo: pedirle las fuentes a Google le cuenta a Google tu IP y
@@ -68,7 +68,7 @@ que estás usando una herramienta para auditar a tu banco. Un proyecto que se
 para en "tu extracto no sale de tu navegador" no puede filtrar eso de una.
 
 > La única petición externa que existe es la de `pdf.js` desde un CDN, y solo si
-> abrís un PDF. Después queda en caché. Si eso te molesta, usá CSV y no sale ni
+> abres un PDF. Después queda en caché. Si eso te molesta, usa CSV y no sale ni
 > una — literalmente cero peticiones a otro dominio.
 
 ## Correlo local
@@ -80,10 +80,10 @@ módulos ES y ya.
 git clone https://github.com/jarueda97/plata-clara
 cd plata-clara
 python3 -m http.server 8000
-# abrí http://localhost:8000
+# abre http://localhost:8000
 ```
 
-> Necesitás un servidor (aunque sea ese) porque los módulos ES no cargan sobre
+> Necesitas un servidor (aunque sea ese) porque los módulos ES no cargan sobre
 > `file://`. Abrir el `index.html` con doble clic no funciona.
 
 Los tests corren con Node, sin instalar nada:
@@ -103,7 +103,7 @@ node --test tests/test.mjs
 | `src/parse/bancolombia-visa.js` | **Preset Bancolombia Visa detallado.** El primero construido contra un extracto real. |
 | `src/motor/diferidos.js` | Lo que estás pagando a cuotas sin haberlo decidido, y cuánto se apila. |
 | `src/datos/cargos.js` | Patrones de cargos financieros. **Editable.** |
-| `src/datos/suscripciones.js` | Diccionario de comercios. **Editable — acá es donde más ayuda hace falta.** |
+| `src/datos/suscripciones.js` | Diccionario de comercios. **Editable — aquí es donde más ayuda hace falta.** |
 | `src/motor/interes.js` | Clasifica cargos, suma el costo real de la deuda. |
 | `src/motor/suscripciones.js` | Identifica comercios, detecta recurrencia, calcula recargos. |
 | `src/motor/minimo.js` | Simula pagar el mínimo hasta que la deuda muera (si es que muere). |
@@ -114,7 +114,7 @@ Es la única cosa que esta herramienta no se puede dar el lujo de arruinar, y
 tiene dos trampas que son fáciles de pisar:
 
 **1. La comisión internacional ya está en tu extracto.** Sale como línea aparte
-(`COMISION TRANSACCION INTERNACIONAL`). Si la contáramos como cargo del banco
+(`COMISION TRANSACCION INTERNACIONAL`). Si la cuentaramos como cargo del banco
 *y además* la estimáramos sobre la suscripción, la sumaríamos dos veces. Así que
 la sacamos del costo de la deuda (no es costo de deber plata, es costo de
 comprar en dólares) y se la atribuimos a la compra que la causó, por fecha. Solo
@@ -152,8 +152,8 @@ pendiente**, y reportaba el saldo entero como "gasto del mes". Ahora `valor` es
 la cuota.
 
 **Y lo que se apila.** Una suscripción se cobra todos los meses. Si el banco
-difiere *cada cobro* a 36 cuotas, al mes 20 tenés 20 cuotas del mismo servicio
-corriendo a la vez y el saldo solo sube — nunca terminás de pagar el mes 1 antes
+difiere *cada cobro* a 36 cuotas, al mes 20 tienes 20 cuotas del mismo servicio
+corriendo a la vez y el saldo solo sube — nunca terminas de pagar el mes 1 antes
 de que llegue el 21. Eso dejó de ser una suscripción: es deuda que se acumula
 sola, y ningún extracto te lo dice. Por eso el bloque de diferidos agrupa por
 comercio y no por cuota: *"49 suscripciones diferidas"* es un número engañoso
@@ -167,16 +167,16 @@ cuota se ve inofensiva y el saldo te cobra todos los meses.
 
 - **No inventamos la tasa de usura.** Cambia cada mes y la publica la
   Superfinanciera. Quemarla en el código sería garantizar que quede
-  desactualizada y mienta. La escribís vos, con el link al lado.
+  desactualizada y mienta. La escribes tú, con el link al lado.
 - **No *estimamos* tu tasa de interés.** Si el extracto la trae impresa (el de
   Bancolombia la da por transacción), la leemos y la usamos, ponderada por
   saldo: eso es un dato, no una cuenta nuestra. Si no la trae, el campo queda
-  vacío y lo llenás vos. Lo que no hacemos es *adivinarla*: nuestra estimación
+  vacío y lo llenas tú. Lo que no hacemos es *adivinarla*: nuestra estimación
   divide el interés del mes por el saldo de cierre, cuando el interés se liquida
   sobre el saldo promedio diario, o sea que tira para arriba por construcción.
   Ese campo alimenta la comparación con la usura, y un número inflado te haría
   acusar a un banco de un delito por culpa de nuestra aritmética.
-- **No sumamos sin mostrarte.** Siempre ves la tabla y podés destildar lo que
+- **No sumamos sin mostrarte.** Siempre ves la tabla y puedes destildar lo que
   esté mal clasificado antes de que sumemos nada.
 
 ## Diseño
@@ -211,14 +211,14 @@ valor correcto aunque los frames no corran (en pestaña oculta
 
 ## Contribuir
 
-Lo más útil que podés hacer, en orden:
+Lo más útil que puedes hacer, en orden:
 
 1. **Agregar comercios al diccionario** (`src/datos/suscripciones.js`). Es la
-   diferencia entre "detectamos 3 suscripciones" y "detectamos 11". No necesitás
+   diferencia entre "detectamos 3 suscripciones" y "detectamos 11". No necesitas
    saber programar.
 2. **Agregar patrones de cargos de tu banco** (`src/datos/cargos.js`). Cada banco
    los nombra distinto.
-3. **Reportar un extracto que se leyó mal.** Mandanos la fila de encabezados de
+3. **Reportar un extracto que se leyó mal.** Mándanos la fila de encabezados de
    tu CSV, sin datos personales.
 
 Ver [CONTRIBUTING.md](CONTRIBUTING.md).

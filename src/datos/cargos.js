@@ -7,7 +7,7 @@
 // `esInteres: true`  -> es costo puro de tener deuda.
 // `esCargo: true`    -> es una tarifa/impuesto que igual te descuenta plata.
 //
-// ¿Falta el cargo de tu banco? Agrégalo acá y manda un PR. Ver CONTRIBUTING.md
+// ¿Falta el cargo de tu banco? Agrégalo aquí y manda un PR. Ver CONTRIBUTING.md
 
 export const CARGOS = [
   {
@@ -98,7 +98,7 @@ export const CARGOS = [
     clave: 'seguro_deuda',
     etiqueta: 'Seguros asociados',
     esCargo: true,
-    revisar: true, // suele dar falsos positivos: puede ser un seguro que sí querés
+    revisar: true, // suele dar falsos positivos: puede ser un seguro que sí quieres
     ayuda: 'Seguro de vida deudores y pólizas pegadas al crédito. Muchas veces ni sabías que las tenías.',
     patrones: [
       'SEGURO DE VIDA DEUDORES', 'VIDA DEUDORES', 'SEGURO DEUDORES', 'SEGURO VIDA DEUDOR',

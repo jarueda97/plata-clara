@@ -5,15 +5,15 @@ los comercios y los cargos de **tu** banco, y eso no lo puede hacer una sola
 persona: hay decenas de bancos y cientos de comercios, cada uno escribiendo las
 cosas a su manera.
 
-**No necesitás saber programar para las dos contribuciones más útiles.**
+**No necesitas saber programar para las dos contribuciones más útiles.**
 
 ---
 
 ## 1. Agregar un comercio al diccionario ⭐ lo más útil
 
-Si tenés una suscripción que Plata Clara no reconoció, agregala.
+Si tienes una suscripción que Plata Clara no reconoció, agregala.
 
-Abrí `src/datos/suscripciones.js` y agregá una línea:
+Abre `src/datos/suscripciones.js` y agrega una línea:
 
 ```js
 { nombre: 'Nombre Bonito', categoria: 'streaming', moneda: 'COP', patrones: ['COMO SALE EN EL EXTRACTO'] },
@@ -32,8 +32,8 @@ Abrí `src/datos/suscripciones.js` y agregá una línea:
   del archivo. Si de verdad hace falta una nueva, agregala ahí.
 
 **Ojo con los patrones muy cortos.** `MAX` pegaría con `MAXIMILIANO PIZZA`. Los
-patrones matchean palabras completas, pero igual pensá si tu patrón puede
-aparecer adentro del nombre de otro comercio. Cuando dudes, usá el patrón más
+patrones matchean palabras completas, pero igual piensa si tu patrón puede
+aparecer adentro del nombre de otro comercio. Cuando dudes, usa el patrón más
 largo que siga funcionando.
 
 **No pongas tus datos.** No necesitamos tu extracto, solo el nombre del comercio.
@@ -42,19 +42,19 @@ largo que siga funcionando.
 
 ## 2. Agregar un cargo de tu banco
 
-Si tu banco nombra los cargos distinto (y lo hace), abrí `src/datos/cargos.js`
-y agregá el texto a los `patrones` del cargo que corresponda.
+Si tu banco nombra los cargos distinto (y lo hace), abre `src/datos/cargos.js`
+y agrega el texto a los `patrones` del cargo que corresponda.
 
 **El orden importa.** La lista se evalúa de arriba hacia abajo y gana el primero
 que matchee. Por eso `interes_mora` va antes que `interes_corriente`: si no,
 `INTERESES DE MORA` caería en el patrón `INTERES` y quedaría mal clasificado.
-Si agregás un patrón nuevo, poné el más específico arriba.
+Si agregas un patrón nuevo, pon el más específico arriba.
 
 ---
 
 ## 3. Reportar un extracto que se leyó mal
 
-Abrí un issue con:
+Abre un issue con:
 
 - Qué banco y qué tipo de producto (tarjeta, ahorros).
 - **La fila de encabezados de tu CSV**, tal cual, sin ninguna fila de datos.
@@ -63,7 +63,7 @@ Abrí un issue con:
 
 **Nunca subas tu extracto a un issue.** Tiene tus movimientos, tu saldo y a
 veces tu número de cuenta. Los encabezados y una descripción del problema
-alcanzan. Si necesitás mandar una fila de ejemplo, inventá los números.
+alcanzan. Si necesitas mandar una fila de ejemplo, inventa los números.
 
 ---
 
@@ -79,8 +79,8 @@ node --test tests/test.mjs      # los tests corren con Node pelado
 ### Antes de mandar un PR
 
 - Que `node --test tests/test.mjs` pase.
-- Si tocaste un motor, agregá un test. Los de `no se cuenta dos veces` son los
-  más importantes del repo: si los rompés, la herramienta miente.
+- Si tocaste un motor, agrega un test. Los de `no se cuenta dos veces` son los
+  más importantes del repo: si los rompes, la herramienta miente.
 
 ### La regla que no se rompe
 

@@ -547,7 +547,7 @@ test('bancolombia: la línea del periodo NO es un movimiento', () => {
 test('bancolombia: detecta por la forma de los datos, no por el encabezado', () => {
   // El encabezado REAL del PDF: cada título partido en dos líneas y repetido
   // tres veces por la maquetación. Buscar "número de autorización" como frase
-  // fallaba acá — por eso detectamos por la forma de las filas.
+  // fallaba aquí — por eso detectamos por la forma de las filas.
   const lineas = [
     'Número de Número de Número de Valor Valor Valor Número Número Número Valor Valor Valor % Interés % Interés % Interés Saldo Saldo Saldo',
     'autorización autorización autorización movimiento movimiento movimiento cuotas cuotas cuotas Couta/Abono Couta/Abono Couta/Abono mensual mensual mensual pendiente pendiente pendiente',
@@ -629,8 +629,8 @@ test('interesPorPagar: proyecta sobre el capital que se va pagando', () => {
 });
 
 test('diferidos: detecta el apilamiento — lo mismo diferido mes tras mes', () => {
-  // El caso real: pagás Claude todos los meses y el banco difiere CADA cobro
-  // a 36 cuotas. Al mes 3 tenés 3 cuotas de Claude corriendo a la vez.
+  // El caso real: pagas Claude todos los meses y el banco difiere CADA cobro
+  // a 36 cuotas. Al mes 3 tienes 3 cuotas de Claude corriendo a la vez.
   // "3 suscripciones diferidas" sería mentira: es UNA, apilada 3 veces.
   const claude = (n, mes) => ({
     id: `c${n}`, descripcion: 'ANTHROPIC CLAUDE', fecha: new Date(2026, mes, 5),
@@ -644,7 +644,7 @@ test('diferidos: detecta el apilamiento — lo mismo diferido mes tras mes', () 
   assert.equal(d.comerciosSuscripcion, 1);
   assert.equal(d.apiladas[0].nombre, 'Claude (Anthropic)');
   assert.equal(d.apiladas[0].cuotasVivas, 3);
-  assert.equal(d.apiladas[0].cuotaMensual, 6000, 'pagás 3 cuotas a la vez del mismo servicio');
+  assert.equal(d.apiladas[0].cuotaMensual, 6000, 'pagas 3 cuotas a la vez del mismo servicio');
   assert.equal(d.seApilan.length, 1);
 });
 

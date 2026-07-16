@@ -6,7 +6,7 @@
 //
 // Estrategia: sacamos el texto con pdf.js y buscamos líneas que se vean como
 // "FECHA  DESCRIPCION  $VALOR". No es perfecto y no pretende serlo: por eso
-// la interfaz SIEMPRE muestra la tabla para que vos confirmes antes de sumar.
+// la interfaz SIEMPRE muestra la tabla para que tú confirmes antes de sumar.
 //
 // El PDF nunca sale de tu navegador. pdf.js se carga desde un CDN la primera
 // vez; después queda en caché y la app funciona sin internet.

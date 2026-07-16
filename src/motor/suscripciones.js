@@ -2,7 +2,7 @@
 //
 // Dos verdades incómodas que este motor trata de mostrar:
 //
-// 1. Con UN SOLO mes de extracto no podés detectar recurrencia por repetición
+// 1. Con UN SOLO mes de extracto no puedes detectar recurrencia por repetición
 //    (nada se repite todavía). Toca reconocer al comercio por nombre. Por eso
 //    el diccionario es el corazón del proyecto. Con dos o más meses ya podemos
 //    confirmar por repetición y encontrar comercios que no conocemos.
@@ -194,7 +194,7 @@ export function analizarSuscripciones(transacciones, {
     enDolares: comercios.filter((c) => c.enDolares),
     sinConfirmar: comercios.filter((c) => !c.recurrenciaConfirmada),
     // Comisiones internacionales que no pudimos amarrar a ninguna suscripción
-    // (seguro son de compras sueltas). Quedan acá para no desaparecerlas.
+    // (seguro son de compras sueltas). Quedan aquí para no desaparecerlas.
     comisionesSinAtribuir: sinAtribuir,
   };
 }
@@ -202,7 +202,7 @@ export function analizarSuscripciones(transacciones, {
 /**
  * Lo que el banco le monta encima a un cargo.
  *
- * Acá hay dos cosas que NO son lo mismo y meterlas en el mismo saco sería mentir:
+ * Aquí hay dos cosas que NO son lo mismo y meterlas en el mismo saco sería mentir:
  *
  * - La comisión internacional SE SUMA: es plata que salió de tu cuenta en una
  *   línea aparte del extracto. Si el extracto ya la trae (`comisionReal`), la

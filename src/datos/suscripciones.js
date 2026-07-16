@@ -5,8 +5,8 @@
 // comisión internacional + IVA + el spread de TRM del banco. Si el extracto
 // dice explícitamente que fue compra internacional, esa evidencia manda.
 //
-// ¿Te falta un comercio? Agregalo acá con el texto TAL CUAL sale en tu extracto
-// (sin el número de referencia) y mandá un PR. Ver CONTRIBUTING.md
+// ¿Te falta un comercio? Agrégalo aquí con el texto TAL CUAL sale en tu extracto
+// (sin el número de referencia) y manda un PR. Ver CONTRIBUTING.md
 
 export const SUSCRIPCIONES = [
   // --- Streaming de video ---

@@ -1,5 +1,5 @@
 // Plata Clara — interfaz.
-// Todo el trabajo pasa acá, en tu navegador. No hay red de por medio.
+// Todo el trabajo pasa aquí, en tu navegador. No hay red de por medio.
 
 import { parseNumero, formatoCOP, formatoPct } from './src/parse/numero.js';
 import { claveMes, nombreMes } from './src/parse/fecha.js';
@@ -350,7 +350,7 @@ function pintarInteres(r) {
   contarHasta($('#cifra-interes'), r.costoTotal);
 
   if (r.costoTotal === 0) {
-    $('#pie-interes').textContent = 'No encontramos intereses ni cargos. O estás al día, o tu extracto los nombra distinto — revisá la tabla.';
+    $('#pie-interes').textContent = 'No encontramos intereses ni cargos. O estás al día, o tu extracto los nombra distinto — revisa la tabla.';
     $('#desglose-interes').innerHTML = '';
     return;
   }
@@ -371,7 +371,7 @@ function pintarSubs(r) {
   contarHasta($('#cifra-subs'), r.costoRealTotal);
 
   if (!r.comercios.length) {
-    $('#pie-subs').textContent = 'No reconocimos ninguna suscripción. Si sabés que tenés, marcalas en la tabla y volvé a analizar.';
+    $('#pie-subs').textContent = 'No reconocimos ninguna suscripción. Si sabes que tienes, márcalas en la tabla y vuelve a analizar.';
     $('#desglose-subs').innerHTML = '';
     return;
   }
@@ -476,7 +476,7 @@ function pintarCategorias(r) {
   const nota = $('#nota-supuesto');
   if (r.sinConfirmar.length) {
     nota.hidden = false;
-    nota.textContent = `${r.sinConfirmar.length} de estas no las pudimos confirmar como recurrentes porque solo aparecen una vez en lo que subiste. Asumimos que son mensuales para proyectar el año. Si subís dos o tres meses, lo confirmamos de verdad.`;
+    nota.textContent = `${r.sinConfirmar.length} de estas no las pudimos confirmar como recurrentes porque solo aparecen una vez en lo que subiste. Asumimos que son mensuales para proyectar el año. Si subes dos o tres meses, lo confirmamos de verdad.`;
   } else {
     nota.hidden = true;
   }
@@ -490,7 +490,7 @@ function pintarDiferidos(d) {
   // El peor apilado manda el titular: es el que explica todo el bloque.
   const peor = d.seApilan[0];
   $('#dif-titular').innerHTML = peor
-    ? `Tenés <span style="color:var(--cyan)">${peor.cuotasVivas} cuotas de ${escapar(peor.nombre)}</span> corriendo a la vez.`
+    ? `Tienes <span style="color:var(--cyan)">${peor.cuotasVivas} cuotas de ${escapar(peor.nombre)}</span> corriendo a la vez.`
     : `Estás financiando <span style="color:var(--cyan)">${d.conteo} compras</span> a cuotas.`;
 
   $('#dif-meta').innerHTML = peor
@@ -501,7 +501,7 @@ function pintarDiferidos(d) {
 
   contarHasta($('#dif-saldo'), d.saldoPendiente);
   $('#dif-saldo-cap').innerHTML =
-    `Compraste <b>${formatoCOP(d.comprado)}</b> en total y pagás <b>${formatoCOP(d.cuotaMensual)}</b> al mes de capital. ` +
+    `Compraste <b>${formatoCOP(d.comprado)}</b> en total y pagas <b>${formatoCOP(d.cuotaMensual)}</b> al mes de capital. ` +
     `La última cuota cae en ${d.colaMeses} meses.`;
 
   contarHasta($('#dif-costo'), d.costoMensualDelSaldo);
@@ -509,13 +509,13 @@ function pintarDiferidos(d) {
     ? `Es el interés del mes sobre ese saldo, al <b>${formatoPct(d.tasaEA)} E.A.</b> No sale de la cuota: se cobra aparte.`
     : `Es el interés del mes sobre ese saldo. No sale de la cuota: se cobra aparte.`;
 
-  // El golpe: cuánto interés falta si dejás correr las cuotas tal cual.
+  // El golpe: cuánto interés falta si dejas correr las cuotas tal cual.
   const proy = interesPorPagar(d.items, d.tasaEA);
   const g = $('#dif-golpe');
   if (proy && proy.interesTotal > 0) {
     g.hidden = false;
     g.innerHTML =
-      `Si no comprás nada más y dejás correr las cuotas, te faltan <span class="hit">${formatoCOP(proy.interesTotal)}</span> ` +
+      `Si no compras nada más y dejas correr las cuotas, te faltan <span class="hit">${formatoCOP(proy.interesTotal)}</span> ` +
       `de intereses en los próximos ${proy.meses} meses — solo por haber diferido.`;
   } else {
     g.hidden = true;
@@ -544,7 +544,7 @@ function pintarDiferidos(d) {
   nota.innerHTML =
     (subs.length
       ? `<b>${subs.length} de esas cuotas son de suscripciones</b> — ${d.comerciosSuscripcion} servicios, ${formatoCOP(saldoSubs)} de saldo. ` +
-        `Una suscripción se cobra todos los meses; si el banco difiere cada cobro a 36 cuotas, nunca terminás de pagar el mes 1 antes de que llegue el 21. `
+        `Una suscripción se cobra todos los meses; si el banco difiere cada cobro a 36 cuotas, nunca terminas de pagar el mes 1 antes de que llegue el 21. `
       : '') +
     `La cuota es capital puro (${d.mayor ? `${escapar(d.mayor.nombre)}: ${formatoCOP(d.mayor.valorMovimiento)} entre ${d.mayor.cuotaTotal}` : ''}); ` +
     `el interés se cobra aparte sobre el saldo total. Por eso la cuota se ve inofensiva y el saldo te cobra todos los meses.`;
@@ -584,7 +584,7 @@ function prepararSimulador(interes, diferidos) {
   // La tasa: si el extracto la trae impresa, la usamos. Esto NO es lo mismo
   // que nuestra estimación — es el dato del banco, ponderado por saldo. Por eso
   // sí lo rellenamos: la razón para no hacerlo era que estimar infla el número,
-  // y acá no estamos estimando nada.
+  // y aquí no estamos estimando nada.
   const eaReal = tasaEADelExtracto(estado.transacciones);
   if (eaReal && !$('#sim-ea').value) {
     $('#sim-ea').value = (eaReal * 100).toFixed(2);
@@ -609,7 +609,7 @@ function prepararSimulador(interes, diferidos) {
     : null;
 
   nota.innerHTML = ea
-    ? `Copiala de tu extracto — sale impresa. Para que te ubiques: por lo que
+    ? `Cópiala de tu extracto — sale impresa. Para que te ubiques: por lo que
        cobraron este mes, andaría cerca del ${formatoPct(ea)} E.A., pero es una
        cuenta gruesa que suele quedar por encima de la real. No la usamos hasta
        que la escribas.`
@@ -661,7 +661,7 @@ function correrSimulacion() {
     <div class="sim-row"><span>Tardarías</span><span>${plazo}</span></div>
     <div class="sim-row"><span>Pagarías en total</span><span>${formatoCOP(min.totalPagado)}</span></div>
     <div class="sim-row"><span>De eso, intereses</span><span>${formatoCOP(min.totalIntereses)}</span></div>
-    <div class="sim-row"><span>O sea, por cada $100 prestados devolvés</span><span>${formatoCOP(100 * min.totalPagado / saldo, { decimales: 0 })}</span></div>
+    <div class="sim-row"><span>O sea, por cada $100 prestados devuelves</span><span>${formatoCOP(100 * min.totalPagado / saldo, { decimales: 0 })}</span></div>
   `;
 
   let fijaOK = null;
@@ -677,7 +677,7 @@ function correrSimulacion() {
         <div class="sim-row hi"><span>Te ahorrarías</span><span>${formatoCOP(ahorro)}</span></div>
         <div class="sim-row hi"><span>Saldrías antes</span><span>${min.meses - fija.meses} meses</span></div>`;
     } else if (fija && fija.nuncaTermina) {
-      html += `<p class="note">Con ${formatoCOP(cuota)} al mes no alcanzás ni a cubrir el interés. Subí la cuota.</p>`;
+      html += `<p class="note">Con ${formatoCOP(cuota)} al mes no alcanzas ni a cubrir el interés. Sube la cuota.</p>`;
     }
   }
 
@@ -698,8 +698,8 @@ function dibujarCurva(min, fija, cuota) {
   tarjeta.hidden = false;
   $('#chart-legend').innerHTML = r.series.length > 1 ? leyenda(r.series) : '';
   $('#chart-sub').textContent = fija
-    ? `pagando el mínimo tardás ${min.meses} meses; con ${formatoCOP(cuota)} fijos, ${fija.meses}`
-    : `escribí una cuota fija arriba para comparar las dos curvas`;
+    ? `pagando el mínimo tardas ${min.meses} meses; con ${formatoCOP(cuota)} fijos, ${fija.meses}`
+    : `escribe una cuota fija arriba para comparar las dos curvas`;
 }
 
 function pintarUsura(ea, usura) {
@@ -713,7 +713,7 @@ function pintarUsura(ea, usura) {
     el.innerHTML = `
       <p class="sim-t">La tasa que escribiste está por encima del techo de usura.</p>
       <p>Escribiste ${formatoPct(cmp.ea)} E.A. y la usura del mes que pusiste es ${formatoPct(cmp.usura)}.
-      Antes de sacar conclusiones: revisá que ambos números estén bien copiados
+      Antes de sacar conclusiones: revisa que ambos números estén bien copiados
       del extracto y de la resolución del mes correcto, y que los dos sean
       efectivos anuales (E.A.) y no nominales — mezclar las dos cosas es el
       error más común y hace que una tasa normal parezca ilegal.</p>
@@ -787,7 +787,7 @@ $('#btn-demo').addEventListener('click', async () => {
     const file = new File([texto], 'ejemplo-extracto.csv', { type: 'text/csv' });
     await cargarArchivos([file]);
   } catch (err) {
-    mostrarError(`No pudimos cargar el ejemplo (${err.message}). Si abriste el index.html con doble clic, necesitás un servidor: corré "python3 -m http.server" en la carpeta del proyecto.`);
+    mostrarError(`No pudimos cargar el ejemplo (${err.message}). Si abriste el index.html con doble clic, necesitas un servidor: corre "python3 -m http.server" en la carpeta del proyecto.`);
   }
 });
 

@@ -75,7 +75,7 @@ function esSeparadorDecimal(s, sep) {
  * los extractos imprimen las tasas con 4 decimales — "28,7548 %" — y esa regla
  * las destroza: 28,7548 se volvía 287.548.
  *
- * Acá el último separador SIEMPRE es decimal: una tasa nunca pasa de tres
+ * Aquí el último separador SIEMPRE es decimal: una tasa nunca pasa de tres
  * dígitos enteros, así que no hay miles que separar.
  *
  * @param {string|number} bruto

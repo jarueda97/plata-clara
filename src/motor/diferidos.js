@@ -1,7 +1,7 @@
 // Motor de diferidos: lo que estás pagando a cuotas sin haberlo decidido.
 //
 // En Colombia la tarjeta suele venir configurada para diferir TODO a N cuotas
-// por defecto. El resultado es que financiás a 36 meses cosas que nunca
+// por defecto. El resultado es que financias a 36 meses cosas que nunca
 // pensarías financiar — una suscripción, un domicilio, un mercado — y el
 // extracto no te lo dice en ninguna parte: solo te muestra una cuota chiquita.
 //
@@ -26,7 +26,7 @@ export function analizarDiferidos(transacciones, { interesDelMes = 0 } = {}) {
   const cuotaMensual = diferidas.reduce((a, t) => a + (t.valorCuota || 0), 0);
   const comprado = diferidas.reduce((a, t) => a + (t.valorMovimiento || 0), 0);
 
-  // Tasa ponderada por saldo: la que importa es la de la plata que más debés.
+  // Tasa ponderada por saldo: la que importa es la de la plata que más debes.
   const conTasa = diferidas.filter((t) => t.tasaEA > 0 && t.saldoPendiente > 0);
   const saldoConTasa = conTasa.reduce((a, t) => a + t.saldoPendiente, 0);
   const tasaEA = saldoConTasa > 0
@@ -61,8 +61,8 @@ export function analizarDiferidos(transacciones, { interesDelMes = 0 } = {}) {
   // Y el que de verdad duele: el apilamiento.
   //
   // Una suscripción se cobra todos los meses. Si el banco difiere CADA cobro a
-  // 36 cuotas, al mes 20 tenés 20 cuotas de lo mismo corriendo a la vez, y el
-  // saldo solo sube: nunca terminás de pagar el mes 1 antes de que llegue el 21.
+  // 36 cuotas, al mes 20 tienes 20 cuotas de lo mismo corriendo a la vez, y el
+  // saldo solo sube: nunca terminas de pagar el mes 1 antes de que llegue el 21.
   // Dejó de ser una suscripción y se volvió deuda que se acumula sola.
   //
   // Por eso "49 suscripciones diferidas" es un número engañoso: pueden ser 6
@@ -96,11 +96,11 @@ export function analizarDiferidos(transacciones, { interesDelMes = 0 } = {}) {
 }
 
 /**
- * Cuánto interés te queda por pagar si dejás correr el saldo tal cual,
+ * Cuánto interés te queda por pagar si dejas correr el saldo tal cual,
  * pagando exactamente las cuotas. El capital baja según las cuotas vigentes;
  * el interés se cobra sobre lo que quede cada mes.
  *
- * Es una proyección, no una promesa: asume que no comprás nada más.
+ * Es una proyección, no una promesa: asume que no compras nada más.
  */
 export function interesPorPagar(items, tasaEA, { maxMeses = 120 } = {}) {
   if (!items?.length || !tasaEA || tasaEA <= 0) return null;

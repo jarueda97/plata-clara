@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Plata Clara — ¿cuánto te costó tu banco este mes?</title>
-<meta name="description" content="Subí el extracto de tu banco y mirá cuánto pagaste en intereses y en suscripciones. Todo pasa en tu navegador: no hay servidor al cual subirlo.">
+<meta name="description" content="Sube el extracto de tu banco y mira cuánto pagaste en intereses y en suscripciones. Todo pasa en tu navegador: no hay servidor al cual subirlo.">
 <meta property="og:title" content="Plata Clara — ¿cuánto te costó tu banco este mes?">
 <meta property="og:description" content="Intereses, cargos y suscripciones, en pesos, en una pantalla. Sin servidor, sin cuenta, sin que tu extracto salga de tu máquina.">
 <meta property="og:type" content="website">
@@ -40,7 +40,7 @@
 
     <div class="sub-row">
       <p class="lede">
-        <b>Subí el extracto de tu tarjeta o tu cuenta.</b> Te decimos cuánto pagaste
+        <b>Sube el extracto de tu tarjeta o tu cuenta.</b> Te decimos cuánto pagaste
         en intereses y cargos, y cuánto en suscripciones — con lo que el banco le
         monta encima y no aparece en el precio de lista.
       </p>
@@ -50,7 +50,7 @@
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       <div>
         <b>Tu extracto no sale de tu navegador.</b> No es una promesa: es que no hay
-        backend al cual mandarlo. Podés desconectar el internet y esto sigue
+        backend al cual mandarlo. Puedes desconectar el internet y esto sigue
         funcionando. <a href="#faq">Cómo verificarlo</a>.
       </div>
     </div>
@@ -59,15 +59,15 @@
       <div class="ic">
         <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg>
       </div>
-      <p class="t">Arrastrá tu extracto acá</p>
-      <p class="s">CSV o PDF · podés soltar varios meses de una</p>
+      <p class="t">Arrastra tu extracto aquí</p>
+      <p class="s">CSV o PDF · puedes soltar varios meses de una</p>
       <button class="btn btn-volt" id="btn-elegir" type="button">Elegir archivo</button>
       <input type="file" id="input-archivo" accept=".csv,.txt,.pdf" multiple hidden>
     </div>
 
     <p class="zone-help">
-      ¿No tenés el archivo a la mano?
-      <button class="link" id="btn-demo" type="button">Probá con un extracto de ejemplo</button>
+      ¿No tienes el archivo a la mano?
+      <button class="link" id="btn-demo" type="button">Prueba con un extracto de ejemplo</button>
     </p>
 
     <div id="errores" class="alert alert-bad" style="margin-top:18px" hidden></div>
@@ -79,8 +79,8 @@
   <div class="wrap">
     <div class="sec-head">
       <div>
-        <p class="kicker" style="margin-bottom:14px">01 — <span class="b">revisá la lectura</span></p>
-        <h2>Antes de sumar,<br>confirmá que esté bien leído.</h2>
+        <p class="kicker" style="margin-bottom:14px">01 — <span class="b">revisa la lectura</span></p>
+        <h2>Antes de sumar,<br>confirma que esté bien leído.</h2>
       </div>
       <p class="meta" id="resumen-lectura"></p>
     </div>
@@ -191,7 +191,7 @@
               <th>Suscripción</th>
               <th class="r">Lo que ves</th>
               <th class="r">Comisión + IVA</th>
-              <th class="r">Lo que pagás</th>
+              <th class="r">Lo que pagas</th>
               <th class="r">Margen de cambio<br><span class="th-sub">(ya incluido)</span></th>
               <th class="r">Al año</th>
             </tr>
@@ -289,17 +289,17 @@
       <div class="sec-head">
         <div>
           <p class="kicker" style="margin-bottom:14px">06 — <span class="b">la trampa del mínimo</span></p>
-          <h2>¿Y si seguís pagando el mínimo?</h2>
+          <h2>¿Y si sigues pagando el mínimo?</h2>
         </div>
         <p class="meta">
           Tu saldo y tu tasa no los podemos sacar del extracto con certeza, así
-          que los ponés vos. Salen impresos en la primera página.
+          que los pons tú. Salen impresos en la primera página.
         </p>
       </div>
 
       <div class="controls">
         <label class="ctl">
-          <span class="ctl-label">Saldo que debés</span>
+          <span class="ctl-label">Saldo que debes</span>
           <div class="affix"><span>$</span><input type="text" id="sim-saldo" inputmode="numeric" placeholder="5.000.000"></div>
         </label>
         <label class="ctl">
@@ -356,15 +356,15 @@
       <summary>¿De verdad no suben mi extracto a ningún lado?</summary>
       <p>
         De verdad. Todo el análisis corre en JavaScript dentro de tu navegador; no
-        hay backend. Para comprobarlo: abrí las herramientas de desarrollo (F12), andá
-        a la pestaña Red, y subí tu archivo — no vas a ver ninguna petición saliendo
-        con tus datos. También podés desconectar el wifi y usarlo igual. El código
+        hay backend. Para comprobarlo: abre las herramientas de desarrollo (F12), ve
+        a la pestaña Red, y sube tu archivo — no vas a ver ninguna petición saliendo
+        con tus datos. También puedes desconectar el wifi y usarlo igual. El código
         está abierto para que lo leas.
       </p>
       <p>
         Tampoco hay terceros: ni analytics, ni cookies, ni las fuentes. Las fuentes
         se sirven desde el mismo repo justamente porque pedírselas a Google le
-        contaría a Google tu IP y que estás auditando a tu banco. Si usás CSV, esta
+        contaría a Google tu IP y que estás auditando a tu banco. Si usas CSV, esta
         página no le hace ni una sola petición a otro dominio.
       </p>
     </details>
@@ -375,7 +375,7 @@
         Con un solo mes nada se repite todavía, así que no podemos detectar
         recurrencia por repetición: reconocemos los comercios por nombre contra un
         diccionario. Eso encuentra a Netflix y a ChatGPT, pero no al gimnasio de tu
-        barrio. Si soltás dos o tres meses, además detectamos cualquier cobro que se
+        barrio. Si sueltas dos o tres meses, además detectamos cualquier cobro que se
         repita cada ~30 días, aunque no sepamos qué es.
       </p>
     </details>
@@ -386,7 +386,7 @@
         Porque si te factura en dólares, el banco le suma una comisión por
         transacción internacional (2%–3%) más el IVA del 19% sobre esa comisión, y
         aplica su propia tasa de cambio, que casi nunca es la TRM oficial. Todo junto
-        es fácilmente 5%–6% encima. Esos porcentajes los podés ajustar a los de tu
+        es fácilmente 5%–6% encima. Esos porcentajes los puedes ajustar a los de tu
         banco antes de analizar.
       </p>
     </details>
@@ -398,7 +398,7 @@
         de cierre, cuando el interés real se liquida sobre el saldo promedio diario —
         o sea que tira para arriba por construcción. Ese campo alimenta la comparación
         con la usura, y un número inflado te haría acusar a un banco de un delito por
-        culpa de nuestra aritmética. Tu extracto trae la tasa impresa: copiala.
+        culpa de nuestra aritmética. Tu extracto trae la tasa impresa: cópiala.
       </p>
     </details>
 
@@ -407,7 +407,7 @@
       <p>
         Puede pasar: cada banco exporta distinto y no tenemos extractos reales de
         todos. Por eso siempre te mostramos la tabla antes de sumar, para que
-        destildes lo que esté mal. Si querés que lo arreglemos para tu banco, abrí un
+        destildes lo que esté mal. Si quieres que lo arreglemos para tu banco, abre un
         issue con la fila de encabezados de tu CSV — sin datos personales — y lo
         agregamos.
       </p>
@@ -417,8 +417,8 @@
       <summary>¿Por qué no se conecta a mi banco directamente?</summary>
       <p>
         Porque eso obligaría a tener un servidor, pedirte las claves de tu banco o
-        pagarle a un agregador, y a que confiés en nosotros. Un archivo que vos
-        descargás y que nunca se sube no requiere confiar en nadie.
+        pagarle a un agregador, y a que confíes en nosotros. Un archivo que tú
+        descargas y que nunca se sube no requiere confiar en nadie.
       </p>
     </details>
   </div>

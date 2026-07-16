@@ -36,7 +36,7 @@ export function simularMinimo(saldo, ea, {
       return { meses: null, totalPagado, totalIntereses, nuncaTermina: true, curva };
     }
 
-    // Último pago: no pagás de más.
+    // Último pago: no pagas de más.
     if (pago > s + interes) pago = s + interes;
 
     s = s + interes - pago;
@@ -60,7 +60,7 @@ export function simularMinimo(saldo, ea, {
 
 /**
  * Compara pagar el mínimo contra pagar una cuota fija.
- * Devuelve cuánto te ahorrás y cuánto antes salís.
+ * Devuelve cuánto te ahorras y cuánto antes sales.
  */
 export function compararConCuotaFija(saldo, ea, cuota, opciones = {}) {
   const min = simularMinimo(saldo, ea, opciones);

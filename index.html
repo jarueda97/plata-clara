@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plata Clara — ¿cuánto te está costando de verdad tu banco?</title>
+<meta name="description" content="Subí el extracto de tu banco y mirá cuánto pagaste en intereses y en suscripciones. Todo pasa en tu navegador: nada se sube a ningún lado.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="tope">
+  <div class="contenedor tope-fila">
+    <div class="marca">
+      <span class="marca-punto"></span>
+      <span class="marca-nombre">Plata Clara</span>
+    </div>
+    <a class="tope-link" href="https://github.com/tu-usuario/plata-clara" target="_blank" rel="noopener">Código abierto ↗</a>
+  </div>
+</header>
+
+<main class="contenedor">
+
+  <!-- ===== Entrada ===== -->
+  <section id="pantalla-entrada">
+    <h1 class="titulo">¿Cuánto te costó<br>tu banco este mes?</h1>
+    <p class="bajada">
+      Subí el extracto de tu tarjeta o tu cuenta. Te decimos cuánto pagaste en
+      <strong>intereses y cargos</strong>, y cuánto en <strong>suscripciones</strong> —
+      incluyendo lo que el banco le monta encima y no aparece en el precio de lista.
+    </p>
+
+    <div class="privacidad">
+      <span class="candado">🔒</span>
+      <div>
+        <strong>Tu extracto no sale de tu navegador.</strong>
+        No hay servidor, no hay cuenta, no hay base de datos. Podés desconectar
+        el internet y esto sigue funcionando. <a href="#faq">Cómo verificarlo</a>.
+      </div>
+    </div>
+
+    <div id="zona" class="zona" tabindex="0" role="button" aria-label="Subir extracto">
+      <div class="zona-icono">📄</div>
+      <p class="zona-titulo">Arrastrá tu extracto acá</p>
+      <p class="zona-sub">CSV o PDF · podés soltar varios meses de una</p>
+      <button class="boton" id="btn-elegir" type="button">Elegir archivo</button>
+      <input type="file" id="input-archivo" accept=".csv,.txt,.pdf" multiple hidden>
+    </div>
+
+    <p class="zona-ayuda">
+      ¿No tenés el archivo a la mano?
+      <button class="enlace" id="btn-demo" type="button">Probá con un extracto de ejemplo</button>
+    </p>
+
+    <div id="errores" class="errores" hidden></div>
+  </section>
+
+  <!-- ===== Confirmación ===== -->
+  <section id="pantalla-revision" hidden>
+    <div class="seccion-tope">
+      <div>
+        <h2 class="h2">Revisá que esté bien leído</h2>
+        <p class="sub" id="resumen-lectura"></p>
+      </div>
+      <button class="boton boton-fantasma" id="btn-reiniciar" type="button">Empezar de nuevo</button>
+    </div>
+
+    <div class="aviso" id="aviso-signo" hidden>
+      <strong>Ojo:</strong> vemos más entradas que salidas, lo cual es raro en un extracto.
+      Puede que los signos estén al revés.
+      <button class="enlace" id="btn-invertir" type="button">Invertir signos</button>
+    </div>
+
+    <div class="controles">
+      <label class="control">
+        <span class="control-etiqueta">Tipo de cuenta</span>
+        <select id="tipo-cuenta">
+          <option value="credito">Tarjeta de crédito</option>
+          <option value="debito">Cuenta de ahorros / corriente</option>
+        </select>
+        <span class="control-nota">La cuenta de ahorros paga 4x1000; la tarjeta no.</span>
+      </label>
+
+      <label class="control">
+        <span class="control-etiqueta">Comisión internacional de tu banco</span>
+        <div class="input-sufijo">
+          <input type="number" id="comision-intl" value="3" min="0" max="10" step="0.1">
+          <span>%</span>
+        </div>
+        <span class="control-nota">Suele estar entre 2% y 3%. Está en tu contrato.</span>
+      </label>
+
+      <label class="control">
+        <span class="control-etiqueta">Spread de TRM estimado</span>
+        <div class="input-sufijo">
+          <input type="number" id="spread-trm" value="2" min="0" max="10" step="0.1">
+          <span>%</span>
+        </div>
+        <span class="control-nota">Cuánto se aleja la tasa del banco de la TRM oficial.</span>
+      </label>
+    </div>
+
+    <div class="tabla-envoltura">
+      <table class="tabla" id="tabla-revision">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Descripción</th>
+            <th class="num">Valor</th>
+            <th>Lo clasificamos como</th>
+            <th class="centro">Contar</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="acciones">
+      <button class="boton boton-grande" id="btn-analizar" type="button">Ver el daño →</button>
+    </div>
+  </section>
+
+  <!-- ===== Resultados ===== -->
+  <section id="pantalla-resultados" hidden>
+    <div class="seccion-tope">
+      <div>
+        <h2 class="h2">Esto te costó <span id="periodo-texto">el periodo</span></h2>
+        <p class="sub" id="resumen-periodo"></p>
+      </div>
+      <div class="botonera">
+        <button class="boton boton-fantasma" id="btn-volver" type="button">← Revisar</button>
+        <button class="boton boton-fantasma" id="btn-exportar" type="button">Exportar JSON</button>
+        <button class="boton boton-fantasma" id="btn-otro" type="button">Otro extracto</button>
+      </div>
+    </div>
+
+    <!-- Las dos cifras -->
+    <div class="tarjetas">
+      <article class="tarjeta tarjeta-interes">
+        <p class="tarjeta-titulo">Intereses y cargos</p>
+        <p class="cifra" id="cifra-interes">—</p>
+        <p class="tarjeta-pie" id="pie-interes"></p>
+        <div class="desglose" id="desglose-interes"></div>
+      </article>
+
+      <article class="tarjeta tarjeta-subs">
+        <p class="tarjeta-titulo">Suscripciones</p>
+        <p class="cifra" id="cifra-subs">—</p>
+        <p class="tarjeta-pie" id="pie-subs"></p>
+        <div class="desglose" id="desglose-subs"></div>
+      </article>
+    </div>
+
+    <p class="golpe" id="golpe" hidden></p>
+
+    <!-- Lo que no ves -->
+    <section class="bloque" id="bloque-oculto" hidden>
+      <h3 class="h3">Lo que no aparece en el precio de lista</h3>
+      <p class="bloque-sub">
+        Tus suscripciones en dólares no cuestan lo que dice la página. El banco
+        les monta una comisión internacional con su IVA — eso sale como línea
+        aparte en tu extracto y <strong>se suma</strong>. Y aparte te aplica su
+        propia tasa de cambio, que ya viene <strong>adentro</strong> del monto en
+        pesos y por eso no la ves en ninguna línea.
+      </p>
+      <div class="tabla-envoltura">
+        <table class="tabla" id="tabla-oculto">
+          <thead>
+            <tr>
+              <th>Suscripción</th>
+              <th class="num">Lo que ves</th>
+              <th class="num">Comisión + IVA</th>
+              <th class="num">Lo que pagás</th>
+              <th class="num">Margen de cambio<br><span class="th-nota">(ya incluido)</span></th>
+              <th class="num">Al año</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="nota" id="nota-oculto"></p>
+      <p class="nota" id="aviso-comisiones" hidden></p>
+    </section>
+
+    <!-- Suscripciones -->
+    <section class="bloque" id="bloque-subs" hidden>
+      <h3 class="h3">Tus suscripciones</h3>
+      <div id="categorias"></div>
+      <p class="nota" id="nota-supuesto" hidden></p>
+    </section>
+
+    <!-- Costo de la deuda -->
+    <section class="bloque" id="bloque-deuda" hidden>
+      <h3 class="h3">El costo de tu deuda</h3>
+      <div class="tabla-envoltura">
+        <table class="tabla" id="tabla-deuda">
+          <thead>
+            <tr><th>Concepto</th><th class="num">Veces</th><th class="num">Total</th><th class="num">% del costo</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Simulador -->
+    <section class="bloque" id="bloque-sim">
+      <h3 class="h3">¿Y si seguís pagando el mínimo?</h3>
+      <p class="bloque-sub">
+        No podemos sacar tu saldo ni tu tasa del extracto con certeza, así que
+        los ponés vos. Están en la primera página de tu extracto.
+      </p>
+
+      <div class="controles">
+        <label class="control">
+          <span class="control-etiqueta">Saldo que debés</span>
+          <div class="input-prefijo">
+            <span>$</span>
+            <input type="text" id="sim-saldo" inputmode="numeric" placeholder="5.000.000">
+          </div>
+        </label>
+        <label class="control">
+          <span class="control-etiqueta">Tu tasa (E.A.), la que dice tu extracto</span>
+          <div class="input-sufijo">
+            <input type="number" id="sim-ea" step="0.01" placeholder="28,5">
+            <span>%</span>
+          </div>
+          <span class="control-nota" id="nota-ea-estimada"></span>
+        </label>
+        <label class="control">
+          <span class="control-etiqueta">Tasa de usura del mes</span>
+          <div class="input-sufijo">
+            <input type="number" id="sim-usura" step="0.01" placeholder="opcional">
+            <span>%</span>
+          </div>
+          <span class="control-nota">
+            La publica la <a href="https://www.superfinanciera.gov.co/publicaciones/60955/tasas-de-interes-bancario-corriente-60955/" target="_blank" rel="noopener">Superfinanciera</a> cada mes. No la quemamos en el código para no mentirte.
+          </span>
+        </label>
+        <label class="control">
+          <span class="control-etiqueta">Si pagaras fijo cada mes</span>
+          <div class="input-prefijo">
+            <span>$</span>
+            <input type="text" id="sim-cuota" inputmode="numeric" placeholder="500.000">
+          </div>
+        </label>
+      </div>
+
+      <div id="sim-salida" class="sim-salida" hidden></div>
+      <div id="usura-salida" class="usura-salida" hidden></div>
+    </section>
+
+    <p class="descargo">
+      Plata Clara hace estimaciones a partir de lo que dice tu extracto. No es
+      asesoría financiera y puede equivocarse leyendo el archivo de tu banco —
+      por eso te mostramos la tabla antes de sumar. La cifra que manda siempre
+      es la de tu banco.
+    </p>
+  </section>
+
+  <!-- ===== FAQ ===== -->
+  <section class="bloque faq" id="faq">
+    <h3 class="h3">Preguntas</h3>
+
+    <details>
+      <summary>¿De verdad no suben mi extracto a ningún lado?</summary>
+      <p>
+        De verdad. Todo el análisis corre en JavaScript dentro de tu navegador.
+        No hay backend. Para comprobarlo: abrí las herramientas de desarrollo
+        (F12), andá a la pestaña <em>Red</em>, y subí tu archivo — no vas a ver
+        ninguna petición saliendo con tus datos. También podés desconectar el
+        wifi y usarlo igual. El código está abierto para que lo leas.
+      </p>
+    </details>
+
+    <details>
+      <summary>¿Por qué necesitan varios meses para detectar suscripciones?</summary>
+      <p>
+        Con un solo mes nada se repite todavía, así que no podemos detectar
+        recurrencia por repetición: reconocemos los comercios por nombre contra
+        un diccionario. Eso encuentra a Netflix y a ChatGPT, pero no encuentra
+        al gimnasio de tu barrio. Si soltás dos o tres meses, además detectamos
+        cualquier cobro que se repita cada ~30 días, aunque no sepamos qué es.
+      </p>
+    </details>
+
+    <details>
+      <summary>¿Por qué mi suscripción "cuesta más" de lo que dice la página?</summary>
+      <p>
+        Porque si te factura en dólares, el banco le suma una comisión por
+        transacción internacional (2%–3%), el IVA del 19% sobre esa comisión, y
+        aplica su propia tasa de cambio, que casi nunca es la TRM oficial. Todo
+        junto es fácilmente 5%–6% encima. Esos porcentajes los podés ajustar a
+        los de tu banco arriba.
+      </p>
+    </details>
+
+    <details>
+      <summary>Leyó mal mi extracto</summary>
+      <p>
+        Puede pasar: cada banco exporta distinto y no tenemos extractos reales
+        de todos. Por eso siempre te mostramos la tabla antes de sumar, para que
+        destildes lo que esté mal. Si querés que lo arreglemos para tu banco,
+        abrí un issue con la fila de encabezados de tu CSV (sin datos personales)
+        y lo agregamos.
+      </p>
+    </details>
+
+    <details>
+      <summary>¿Por qué no se conecta a mi banco directamente?</summary>
+      <p>
+        Porque eso obligaría a tener un servidor, pedirte las claves de tu banco
+        o pagarle a un agregador, y a que confiés en nosotros. Un archivo que vos
+        descargás y que nunca se sube no requiere confiar en nadie.
+      </p>
+    </details>
+  </section>
+
+</main>
+
+<footer class="pie">
+  <div class="contenedor">
+    <p>
+      Plata Clara · software libre bajo licencia MIT ·
+      <a href="https://github.com/tu-usuario/plata-clara" target="_blank" rel="noopener">contribuí en GitHub</a>
+    </p>
+    <p class="pie-nota">
+      Hecho en Colombia. Ningún banco patrocina esto, por razones evidentes.
+    </p>
+  </div>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

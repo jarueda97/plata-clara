@@ -69,7 +69,7 @@ No hay build, no hay dependencias, no hay `npm install`. Es JavaScript con
 módulos ES y ya.
 
 ```bash
-git clone https://github.com/tu-usuario/plata-clara
+git clone https://github.com/jarueda97/plata-clara
 cd plata-clara
 python3 -m http.server 8000
 # abrí http://localhost:8000

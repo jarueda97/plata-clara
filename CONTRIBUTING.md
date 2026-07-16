@@ -70,7 +70,7 @@ alcanzan. Si necesitás mandar una fila de ejemplo, inventá los números.
 ## 4. Código
 
 ```bash
-git clone https://github.com/tu-usuario/plata-clara
+git clone https://github.com/jarueda97/plata-clara
 cd plata-clara
 python3 -m http.server 8000     # no hay build ni npm install
 node --test tests/test.mjs      # los tests corren con Node pelado

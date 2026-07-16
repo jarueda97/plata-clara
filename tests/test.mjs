@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseNumero } from '../src/parse/numero.js';
+import { parseNumero, parseTasa } from '../src/parse/numero.js';
 import { parseFecha, claveMes, diasEntre } from '../src/parse/fecha.js';
 import { contienePatron, normalizarDescripcion } from '../src/parse/normalizar.js';
 import { detectarDelimitador, parsearCSV, detectarEncabezados, filasATransacciones, sugiereInvertirSigno } from '../src/parse/csv.js';
 import { clasificarCargo, analizarInteres, estimarEA, eaAMensual } from '../src/motor/interes.js';
 import { identificarComercio, analizarSuscripciones, calcularRecargos, mediana } from '../src/motor/suscripciones.js';
 import { simularMinimo, simularCuotaFija, equivalencia } from '../src/motor/minimo.js';
+import { parsearFila, esBancolombiaVisa, tasaEADelExtracto, periodoDelExtracto } from '../src/parse/bancolombia-visa.js';
+import { analizarDiferidos, interesPorPagar, claveComercio } from '../src/motor/diferidos.js';
 
 // --- Números --------------------------------------------------------------
 
@@ -469,4 +471,228 @@ test('equivalencia elige una escala que se sienta', () => {
   const e = equivalencia(180000);
   assert.ok(e.cantidad >= 2 && e.cantidad <= 40, `dio ${e.cantidad} ${e.nombre}`);
   assert.equal(equivalencia(0), null);
+});
+
+// --- Extracto Bancolombia Visa detallado ----------------------------------
+// Filas reales (anonimizadas en el comercio, montos tal cual salieron del PDF).
+// Este preset es el primero construido contra un extracto de verdad; el parser
+// genérico se comía 134 de 135 movimientos.
+
+// Las tasas son floats: comparar con igualdad estricta es una trampa
+// (28.7548/100 da 0.28754799999999997 en IEEE754).
+const cerca = (a, b, tol = 1e-9) => assert.ok(Math.abs(a - b) < tol, `${a} != ${b}`);
+
+test('parseTasa: las tasas traen 4 decimales, no son plata', () => {
+  // El bug: parseNumero('28,7548') daba 287548 porque asume miles.
+  cerca(parseTasa('28,7548 %'), 0.287548);
+  cerca(parseTasa('2,1285 %'), 0.021285);
+  assert.equal(parseTasa('0,0000 %'), 0);
+  cerca(parseTasa('28.7548'), 0.287548);   // por si el banco usa punto
+  assert.equal(parseTasa(''), null);
+  assert.equal(parseTasa('N/A'), null);
+});
+
+test('parseNumero sigue leyendo plata como plata', () => {
+  // La corrección de tasas no puede romper esto: 45.000 son cuarenta y cinco mil.
+  assert.equal(parseNumero('45.000'), 45000);
+  assert.equal(parseNumero('$ 3.600.000,00'), 3600000);
+  assert.equal(parseNumero('$ 5.000.000,00'), 5000000);
+});
+
+test('bancolombia: fila diferida a 36 cuotas', () => {
+  const f = parsearFila('845423 09/06/2026 SUSCRIPCION EJEMPLO $ 3.600.000,00 1/36 $ 100.000,00 2,1285 % 28,7548 % $ 3.500.000,00');
+  assert.equal(f.descripcion, 'SUSCRIPCION EJEMPLO');
+  assert.equal(f.valorMovimiento, 3600000, 'lo que compraste');
+  assert.equal(f.valorCuota, 100000, 'lo que te cobraron este mes');
+  assert.equal(f.saldoPendiente, 3500000, 'lo que falta');
+  assert.equal(f.valor, 100000, 'valor = la cuota, no la compra ni el saldo');
+  assert.deepEqual(f.cuotas, { n: 1, total: 36 });
+  cerca(f.tasaMensual, 0.021285);
+  cerca(f.tasaEA, 0.287548);
+});
+
+test('bancolombia: la cuota es capital puro, el interés va aparte', () => {
+  // 3.600.000 / 36 = 100.000 exacto. Si el interés viviera adentro de la cuota,
+  // la cuota sería mayor. Esto justifica contar los intereses como su
+  // propia transacción en vez de repartirlos entre las cuotas.
+  const f = parsearFila('845423 09/06/2026 SUSCRIPCION EJEMPLO $ 3.600.000,00 1/36 $ 100.000,00 2,1285 % 28,7548 % $ 3.500.000,00');
+  assert.ok(Math.abs(f.valorCuota - f.valorMovimiento / 36) < 0.05);
+  assert.ok(Math.abs(f.saldoPendiente - (f.valorMovimiento - f.valorCuota)) < 0.05);
+});
+
+test('bancolombia: fila sin cuotas ni autorización se cobra completa', () => {
+  const f = parsearFila('15/06/2026 INTERESES CORRIENTES $ 150.000,00 $ 150.000,00 $ 0,00');
+  assert.equal(f.descripcion, 'INTERESES CORRIENTES');
+  assert.equal(f.valor, 150000);
+  assert.equal(f.cuotas, null);
+  assert.equal(f.saldoPendiente, 0);
+  assert.equal(clasificarCargo(f.descripcion).clave, 'interes_corriente');
+});
+
+test('bancolombia: cuota de manejo con autorización 000000', () => {
+  const f = parsearFila('000000 15/06/2026 CUOTA DE MANEJO $ 19.900,00 $ 19.900,00 $ 0,00');
+  assert.equal(f.valor, 19900);
+  assert.equal(clasificarCargo(f.descripcion).clave, 'cuota_manejo');
+});
+
+test('bancolombia: la línea del periodo NO es un movimiento', () => {
+  // Esto era lo único que el parser genérico "encontraba": el encabezado del
+  // periodo, leído como una compra del 18 de mayo por el cupo total.
+  assert.equal(parsearFila('18 may - 15 jun. 2026 $ 5.000.000,00 $ 5.000.000,00 $ 5.000.000,00'), null);
+  assert.equal(parsearFila('+ Saldo anterior $ 5.000.000,00'), null);
+  assert.equal(parsearFila('Cupo total: $ 5.000.000,00'), null);
+  assert.equal(parsearFila('$ 1.000.000,00 $ 1.000.000,00 $ 1.000.000,00'), null);
+});
+
+test('bancolombia: detecta por la forma de los datos, no por el encabezado', () => {
+  // El encabezado REAL del PDF: cada título partido en dos líneas y repetido
+  // tres veces por la maquetación. Buscar "número de autorización" como frase
+  // fallaba acá — por eso detectamos por la forma de las filas.
+  const lineas = [
+    'Número de Número de Número de Valor Valor Valor Número Número Número Valor Valor Valor % Interés % Interés % Interés Saldo Saldo Saldo',
+    'autorización autorización autorización movimiento movimiento movimiento cuotas cuotas cuotas Couta/Abono Couta/Abono Couta/Abono mensual mensual mensual pendiente pendiente pendiente',
+    '845423 09/06/2026 SUSCRIPCION EJEMPLO $ 3.600.000,00 1/36 $ 100.000,00 2,1285 % 28,7548 % $ 3.500.000,00',
+    '963901 01/06/2026 SERVICIO DOS $ 360.000,00 1/36 $ 10.000,00 2,0849 % 28,0967 % $ 350.000,00',
+    '112508 29/05/2026 SERVICIO TRES INC $ 720.000,00 1/36 $ 20.000,00 2,0849 % 28,0967 % $ 700.000,00',
+  ];
+  assert.equal(esBancolombiaVisa(lineas), true);
+});
+
+test('bancolombia: no se confunde con otros extractos', () => {
+  assert.equal(esBancolombiaVisa(['Fecha;Descripcion;Valor', '15/01/2026;NETFLIX;26.900']), false);
+  // Un extracto simple: una sola cifra por fila, no tres.
+  assert.equal(esBancolombiaVisa([
+    '15/01/2026 NETFLIX.COM $ 26.900',
+    '16/01/2026 SPOTIFY $ 16.900',
+    '17/01/2026 EXITO $ 145.300',
+  ]), false);
+});
+
+test('bancolombia: tasa E.A. ponderada por saldo, no promedio simple', () => {
+  const tx = [
+    { tasaEA: 0.30, saldoPendiente: 9000 },   // la plata gorda
+    { tasaEA: 0.10, saldoPendiente: 1000 },
+  ];
+  const ea = tasaEADelExtracto(tx);
+  // Ponderada: (0.30*9000 + 0.10*1000)/10000 = 0.28. Promedio simple daría 0.20.
+  assert.ok(Math.abs(ea - 0.28) < 0.0001, `dio ${ea}`);
+  assert.equal(tasaEADelExtracto([]), null);
+});
+
+// --- Motor de diferidos ---------------------------------------------------
+
+test('diferidos: separa la compra de la cuota y del saldo', () => {
+  const tx = [
+    { id: '1', descripcion: 'SUSCRIPCION EJEMPLO', fecha: new Date(2026, 5, 9), valor: 100000,
+      valorMovimiento: 3600000, valorCuota: 100000, saldoPendiente: 3500000,
+      cuotas: { n: 1, total: 36 }, tasaEA: 0.287548 },
+    { id: '2', descripcion: 'INTERESES CORRIENTES', fecha: new Date(2026, 5, 15), valor: 150000,
+      valorMovimiento: 150000, valorCuota: 150000, saldoPendiente: 0, cuotas: null, tasaEA: null },
+  ];
+  const d = analizarDiferidos(tx, { interesDelMes: 150000 });
+  assert.equal(d.conteo, 1, 'los intereses no son una compra diferida');
+  assert.equal(d.comprado, 3600000);
+  assert.equal(d.cuotaMensual, 100000);
+  assert.equal(d.saldoPendiente, 3500000);
+  assert.equal(d.items[0].restantes, 36);
+  assert.equal(d.items[0].esSuscripcion, false, 'un comercio desconocido no es suscripción');
+  // El interés real del extracto manda sobre cualquier cuenta nuestra.
+  assert.equal(d.costoMensualDelSaldo, 150000);
+});
+
+test('diferidos: reconoce suscripciones financiadas', () => {
+  const tx = [
+    { id: '1', descripcion: 'OPENAI *CHATGPT', fecha: new Date(2026, 5, 9), valor: 2000,
+      valorMovimiento: 72000, valorCuota: 2000, saldoPendiente: 70000,
+      cuotas: { n: 1, total: 36 }, tasaEA: 0.28 },
+  ];
+  const d = analizarDiferidos(tx);
+  assert.equal(d.suscripcionesDiferidas.length, 1);
+  assert.equal(d.suscripcionesDiferidas[0].nombre, 'ChatGPT (OpenAI)');
+  assert.equal(d.suscripcionesDiferidas[0].restantes, 36);
+});
+
+test('diferidos: sin cuotas no hay bloque', () => {
+  assert.equal(analizarDiferidos([{ id: '1', descripcion: 'NETFLIX', valor: 26900, cuotas: null }]), null);
+});
+
+test('interesPorPagar: proyecta sobre el capital que se va pagando', () => {
+  const items = [{ valorCuota: 1000, restantes: 10, saldoPendiente: 10000 }];
+  const r = interesPorPagar(items, 0.28);
+  assert.ok(r.interesTotal > 0);
+  assert.equal(r.meses, 10);
+  // Menos que si el saldo se quedara quieto los 10 meses: el capital baja.
+  const quieto = 10000 * (((1.28) ** (1 / 12)) - 1) * 10;
+  assert.ok(r.interesTotal < quieto, 'el saldo amortiza, no se queda quieto');
+  assert.equal(interesPorPagar([], 0.28), null);
+  assert.equal(interesPorPagar(items, 0), null);
+});
+
+test('diferidos: detecta el apilamiento — lo mismo diferido mes tras mes', () => {
+  // El caso real: pagás Claude todos los meses y el banco difiere CADA cobro
+  // a 36 cuotas. Al mes 3 tenés 3 cuotas de Claude corriendo a la vez.
+  // "3 suscripciones diferidas" sería mentira: es UNA, apilada 3 veces.
+  const claude = (n, mes) => ({
+    id: `c${n}`, descripcion: 'ANTHROPIC CLAUDE', fecha: new Date(2026, mes, 5),
+    valor: 2000, valorMovimiento: 72000, valorCuota: 2000,
+    saldoPendiente: 72000 - 2000 * n, cuotas: { n, total: 36 }, tasaEA: 0.28,
+  });
+  const d = analizarDiferidos([claude(3, 3), claude(2, 4), claude(1, 5)]);
+
+  assert.equal(d.conteo, 3, 'tres cuotas vivas');
+  assert.equal(d.apiladas.length, 1, 'pero un solo comercio');
+  assert.equal(d.comerciosSuscripcion, 1);
+  assert.equal(d.apiladas[0].nombre, 'Claude (Anthropic)');
+  assert.equal(d.apiladas[0].cuotasVivas, 3);
+  assert.equal(d.apiladas[0].cuotaMensual, 6000, 'pagás 3 cuotas a la vez del mismo servicio');
+  assert.equal(d.seApilan.length, 1);
+});
+
+test('diferidos: una compra suelta no se considera apilada', () => {
+  const d = analizarDiferidos([
+    { id: '1', descripcion: 'ALKOSTO', fecha: new Date(2026, 5, 1), valor: 100,
+      valorMovimiento: 3600, valorCuota: 100, saldoPendiente: 3500,
+      cuotas: { n: 1, total: 36 }, tasaEA: 0.28 },
+  ]);
+  assert.equal(d.apiladas.length, 1);
+  assert.equal(d.seApilan.length, 0, 'una sola cuota viva no es apilamiento');
+});
+
+test('diferidos: el mismo comercio escrito distinto se agrupa igual', () => {
+  // Pasó con un extracto real: el mismo comercio escrito de dos formas salía
+  // como dos, y partía el apilamiento en 7+7 en vez de 14 — subestimando
+  // exactamente lo que este bloque existe para medir.
+  assert.equal(claveComercio('ACME INC'), claveComercio('ACME'));
+  assert.equal(claveComercio('WIDGET.IO'), claveComercio('WIDGET'));
+  assert.equal(claveComercio('WIDGET 845423'), claveComercio('WIDGET'));
+  // Pero no colapsa comercios que sí son distintos.
+  assert.notEqual(claveComercio('ACME'), claveComercio('WIDGET'));
+
+  const mk = (desc, n) => ({
+    id: desc + n, descripcion: desc, fecha: new Date(2026, n, 5), valor: 100,
+    valorMovimiento: 3600, valorCuota: 100, saldoPendiente: 3000,
+    cuotas: { n, total: 36 }, tasaEA: 0.28,
+  });
+  const d = analizarDiferidos([mk('ACME INC', 1), mk('ACME', 2), mk('ACME INC 998877', 3)]);
+  assert.equal(d.apiladas.length, 1, 'un solo comercio, no tres');
+  assert.equal(d.apiladas[0].cuotasVivas, 3);
+  assert.equal(d.apiladas[0].nombre, 'ACME', 'se queda con el nombre limpio');
+});
+
+test('bancolombia: lee el periodo del encabezado, no de las filas', () => {
+  // Sin esto la app decía "esto te costó en 18 meses" sobre un extracto de UN
+  // mes, porque las cuotas conservan la fecha de compra (hasta año y medio atrás).
+  const p = periodoDelExtracto(['18 may - 15 jun. 2026 $ 5.000.000,00 $ 5.000.000,00 $ 5.000.000,00']);
+  assert.equal(claveMes(p.fin), '2026-06');
+  assert.equal(claveMes(p.inicio), '2026-05');
+});
+
+test('bancolombia: periodo que cruza de año', () => {
+  const p = periodoDelExtracto(['18 dic - 15 ene. 2026 $ 1,00 $ 1,00 $ 1,00']);
+  assert.equal(claveMes(p.fin), '2026-01');
+  assert.equal(claveMes(p.inicio), '2025-12', 'el inicio cae en el año anterior');
+});
+
+test('bancolombia: sin encabezado de periodo devuelve null', () => {
+  assert.equal(periodoDelExtracto(['845423 09/06/2026 SUSCRIPCION EJEMPLO $ 3.600.000,00 1/36 $ 100.000,00 2,1285 % 28,7548 % $ 3.500.000,00']), null);
 });

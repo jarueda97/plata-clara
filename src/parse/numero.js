@@ -67,6 +67,37 @@ function esSeparadorDecimal(s, sep) {
   return detras >= 1 && detras <= 2;
 }
 
+/**
+ * Parsea una TASA, que no se lee igual que la plata.
+ *
+ * `parseNumero` asume que una coma con más de 2 dígitos detrás es separador de
+ * miles, porque en plata eso es cierto: "45.000" son cuarenta y cinco mil. Pero
+ * los extractos imprimen las tasas con 4 decimales — "28,7548 %" — y esa regla
+ * las destroza: 28,7548 se volvía 287.548.
+ *
+ * Acá el último separador SIEMPRE es decimal: una tasa nunca pasa de tres
+ * dígitos enteros, así que no hay miles que separar.
+ *
+ * @param {string|number} bruto
+ * @returns {number|null} fracción (28,7548 % -> 0.287548)
+ */
+export function parseTasa(bruto) {
+  if (bruto == null) return null;
+  if (typeof bruto === 'number') return Number.isFinite(bruto) ? bruto / 100 : null;
+
+  let s = String(bruto).trim().replace(/%/g, '').trim();
+  s = s.replace(/[^\d.,-]/g, '');
+  if (!s || !/\d/.test(s)) return null;
+
+  const ultimo = Math.max(s.lastIndexOf(','), s.lastIndexOf('.'));
+  if (ultimo > -1) {
+    s = s.slice(0, ultimo).replace(/[.,]/g, '') + '.' + s.slice(ultimo + 1);
+  }
+  const n = Number.parseFloat(s);
+  if (!Number.isFinite(n)) return null;
+  return n / 100;
+}
+
 /** Formatea un número como pesos colombianos. */
 export function formatoCOP(n, { decimales = 0 } = {}) {
   if (n == null || !Number.isFinite(n)) return '—';

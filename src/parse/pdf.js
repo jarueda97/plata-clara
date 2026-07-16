@@ -13,6 +13,7 @@
 
 import { parseNumero } from './numero.js';
 import { parseFecha } from './fecha.js';
+import { esBancolombiaVisa, transaccionesDeLineas } from './bancolombia-visa.js';
 
 const PDFJS_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs';
 const PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
@@ -116,9 +117,22 @@ export function lineasATransacciones(lineas, { anioPorDefecto = new Date().getFu
   return { transacciones, descartadas };
 }
 
-/** Todo junto: File de PDF -> transacciones. */
+/**
+ * Todo junto: File de PDF -> transacciones.
+ *
+ * Primero probamos los presets de banco, que sí saben leer las columnas. El
+ * extractor genérico es el último recurso: sobre un extracto de verdad se comió
+ * 134 de 135 movimientos, porque agarra la última cifra de la fila y en un
+ * extracto diferido esa cifra es el saldo pendiente, no lo que pagaste.
+ */
 export async function transaccionesDePDF(file, opciones = {}) {
   const buf = await file.arrayBuffer();
   const lineas = await textoDePDF(buf);
-  return lineasATransacciones(lineas, { origen: file.name, ...opciones });
+
+  if (esBancolombiaVisa(lineas)) {
+    const r = transaccionesDeLineas(lineas, { origen: file.name });
+    if (r.transacciones.length) return r;
+  }
+
+  return { ...lineasATransacciones(lineas, { origen: file.name, ...opciones }), banco: null };
 }

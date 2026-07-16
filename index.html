@@ -218,6 +218,51 @@
     </div>
   </section>
 
+  <!-- diferidos -->
+  <section id="bloque-diferidos" hidden style="padding-bottom:0">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="kicker" style="margin-bottom:14px">05 — <span class="b">lo que estás financiando</span></p>
+          <h2 id="dif-titular">Estás pagando a cuotas cosas que nadie financia.</h2>
+        </div>
+        <p class="meta" id="dif-meta"></p>
+      </div>
+
+      <div class="figures" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+        <article class="fig fig-dif">
+          <p class="hd"><span class="dot"></span> Saldo pendiente</p>
+          <p class="n" id="dif-saldo">$ 0</p>
+          <p class="cap" id="dif-saldo-cap"></p>
+        </article>
+        <article class="fig fig-dif">
+          <p class="hd"><span class="dot"></span> Te cuesta al mes</p>
+          <p class="n" id="dif-costo">$ 0</p>
+          <p class="cap" id="dif-costo-cap"></p>
+        </article>
+      </div>
+
+      <p class="punch" id="dif-golpe" hidden style="margin-top:20px"></p>
+
+      <div class="tbl-wrap" style="margin-top:20px">
+        <table id="tabla-diferidos">
+          <thead>
+            <tr>
+              <th>Comercio</th>
+              <th class="r">Cuotas vivas<br><span class="th-sub">(a la vez)</span></th>
+              <th class="r">Te cobran al mes</th>
+              <th class="r">Compraste</th>
+              <th class="r">Saldo pendiente</th>
+              <th class="r">Cola</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="note" id="dif-nota"></p>
+    </div>
+  </section>
+
   <!-- costo de la deuda -->
   <section id="bloque-deuda" hidden style="padding-bottom:0">
     <div class="wrap">

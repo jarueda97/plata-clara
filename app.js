@@ -10,6 +10,8 @@ import { TARIFAS } from './src/datos/tarifas.js';
 import { iconoDe } from './src/datos/iconos.js';
 import { dibujarAmortizacion, leyenda } from './src/vista/grafico.js';
 import { analizarInteres, clasificarCargo, estimarEA, compararUsura } from './src/motor/interes.js';
+import { analizarDiferidos, interesPorPagar } from './src/motor/diferidos.js';
+import { tasaEADelExtracto } from './src/parse/bancolombia-visa.js';
 import { analizarSuscripciones, identificarComercio, pareceRecurrente } from './src/motor/suscripciones.js';
 import { simularMinimo, simularCuotaFija, equivalencia } from './src/motor/minimo.js';
 
@@ -23,6 +25,8 @@ const estado = {
   extras: new Set(),      // el usuario dijo "esto sí es suscripción"
   forzados: new Map(),    // id -> clave de cargo corregida a mano
   invertido: false,
+  periodo: null,   // el que dice el extracto, no el rango de fechas de las filas
+  banco: null,
   resultado: null,
 };
 
@@ -55,6 +59,8 @@ async function cargarArchivos(archivos) {
     try {
       const esPDF = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
       const r = esPDF ? await transaccionesDePDF(f) : await leerCSV(f);
+      if (r.periodo) estado.periodo = r.periodo;
+      if (r.banco) estado.banco = r.banco;
       if (!r.transacciones.length) {
         problemas.push(`${f.name}: no encontramos movimientos que podamos leer.`);
       } else {
@@ -105,11 +111,19 @@ function mostrarRevision() {
     ? nombreMes(meses[0])
     : `${nombreMes(meses[0])} a ${nombreMes(meses[meses.length - 1])}`;
 
+  // Ojo: `rango` son fechas de COMPRA. Si el extracto trae su periodo impreso,
+  // ese manda — las cuotas conservan la fecha original y estirarían el rango.
+  const p = estado.periodo?.fin ? nombreMes(claveMes(estado.periodo.fin)) : null;
+  const diferidas = tx.filter((t) => t.cuotas).length;
+
   $('#resumen-lectura').textContent =
-    `${tx.length} movimientos · ${rango}` +
-    (meses.length === 1
-      ? ' · con un solo mes detectamos suscripciones por nombre de comercio; con dos o más también por repetición.'
-      : ` · ${meses.length} meses, suficiente para detectar cobros que se repiten.`);
+    `${tx.length} movimientos` +
+    (p ? ` · extracto de ${p}` : ` · ${rango}`) +
+    (diferidas
+      ? ` · ${diferidas} son cuotas de compras anteriores, así que verás fechas viejas: es normal.`
+      : meses.length === 1
+        ? ' · con un solo mes detectamos suscripciones por nombre de comercio; con dos o más también por repetición.'
+        : ` · ${meses.length} meses, suficiente para detectar cobros que se repiten.`);
 
   $('#aviso-signo').hidden = !sugiereInvertirSigno(tx);
 
@@ -249,7 +263,16 @@ function analizar() {
     esCuentaDebito,
   });
 
-  estado.resultado = { interes, subs, tarifas, esCuentaDebito };
+  // El interés que el extracto cobró de verdad. Manda sobre cualquier
+  // estimación nuestra del costo de mantener el saldo.
+  const interesCorriente = interes.grupos
+    .filter((g) => g.esInteres)
+    .reduce((a, g) => a + g.total, 0);
+
+  const contadas = estado.transacciones.filter((t) => !estado.excluidos.has(t.id));
+  const diferidos = analizarDiferidos(contadas, { interesDelMes: interesCorriente });
+
+  estado.resultado = { interes, subs, diferidos, tarifas, esCuentaDebito };
   pintarResultados();
 }
 
@@ -259,19 +282,36 @@ function pintarResultados() {
   $('#pantalla-revision').hidden = true;
   $('#pantalla-resultados').hidden = false;
 
+  // El periodo lo manda el extracto, no las fechas de las filas.
+  //
+  // En un extracto diferido esas fechas son las de COMPRA: una cuota cobrada en
+  // junio conserva la fecha de hace año y medio. Anunciar "esto te costó en 18
+  // meses" sobre un extracto de un mes convierte el interés de un mes en el de
+  // año y medio, que es exactamente el tipo de mentira que esta herramienta
+  // existe para no decir.
   const meses = [...new Set(estado.transacciones.map((t) => claveMes(t.fecha)))].sort();
-  $('#periodo-texto').textContent = meses.length === 1 ? `en ${nombreMes(meses[0])}` : `en ${meses.length} meses`;
+  $('#periodo-texto').textContent = estado.periodo?.fin
+    ? `en ${nombreMes(claveMes(estado.periodo.fin))}`
+    : (meses.length === 1 ? `en ${nombreMes(meses[0])}` : `en ${meses.length} meses`);
+
+  const contadas = estado.transacciones.length - estado.excluidos.size;
+  const dif = estado.resultado?.diferidos;
   $('#resumen-periodo').textContent =
-    `${estado.transacciones.length - estado.excluidos.size} movimientos contados` +
-    (estado.excluidos.size ? ` · ${estado.excluidos.size} que descartaste` : '');
+    `${contadas} movimientos contados` +
+    (estado.excluidos.size ? ` · ${estado.excluidos.size} que descartaste` : '') +
+    (estado.banco ? ` · ${estado.banco}` : '') +
+    (dif?.conteo
+      ? ` · ${dif.conteo} son cuotas de compras viejas, por eso ves fechas de hace meses`
+      : '');
 
   pintarInteres(interes);
   pintarSubs(subs);
   pintarGolpe(interes, subs);
   pintarOculto(subs);
   pintarCategorias(subs);
+  pintarDiferidos(estado.resultado.diferidos);
   pintarDeuda(interes);
-  prepararSimulador(interes);
+  prepararSimulador(interes, estado.resultado.diferidos);
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -442,6 +482,74 @@ function pintarCategorias(r) {
   }
 }
 
+function pintarDiferidos(d) {
+  const bloque = $('#bloque-diferidos');
+  if (!d || !d.conteo) { bloque.hidden = true; return; }
+  bloque.hidden = false;
+
+  // El peor apilado manda el titular: es el que explica todo el bloque.
+  const peor = d.seApilan[0];
+  $('#dif-titular').innerHTML = peor
+    ? `Tenés <span style="color:var(--cyan)">${peor.cuotasVivas} cuotas de ${escapar(peor.nombre)}</span> corriendo a la vez.`
+    : `Estás financiando <span style="color:var(--cyan)">${d.conteo} compras</span> a cuotas.`;
+
+  $('#dif-meta').innerHTML = peor
+    ? `${d.conteo} compras diferidas, pero de solo ${d.apiladas.length} comercios. ` +
+      `Cada vez que te cobran, el banco lo difiere otra vez — y las cuotas se apilan.`
+    : `${d.conteo} compras diferidas. El extracto solo te muestra la cuota, que se ve chiquita. ` +
+      `Lo que no te muestra es el saldo que se acumuló detrás.`;
+
+  contarHasta($('#dif-saldo'), d.saldoPendiente);
+  $('#dif-saldo-cap').innerHTML =
+    `Compraste <b>${formatoCOP(d.comprado)}</b> en total y pagás <b>${formatoCOP(d.cuotaMensual)}</b> al mes de capital. ` +
+    `La última cuota cae en ${d.colaMeses} meses.`;
+
+  contarHasta($('#dif-costo'), d.costoMensualDelSaldo);
+  $('#dif-costo-cap').innerHTML = d.tasaEA
+    ? `Es el interés del mes sobre ese saldo, al <b>${formatoPct(d.tasaEA)} E.A.</b> No sale de la cuota: se cobra aparte.`
+    : `Es el interés del mes sobre ese saldo. No sale de la cuota: se cobra aparte.`;
+
+  // El golpe: cuánto interés falta si dejás correr las cuotas tal cual.
+  const proy = interesPorPagar(d.items, d.tasaEA);
+  const g = $('#dif-golpe');
+  if (proy && proy.interesTotal > 0) {
+    g.hidden = false;
+    g.innerHTML =
+      `Si no comprás nada más y dejás correr las cuotas, te faltan <span class="hit">${formatoCOP(proy.interesTotal)}</span> ` +
+      `de intereses en los próximos ${proy.meses} meses — solo por haber diferido.`;
+  } else {
+    g.hidden = true;
+  }
+
+  // La tabla va POR COMERCIO, no por cuota suelta: 20 filas de "Claude" no
+  // dicen nada; una fila que diga "Claude, 20 cuotas vivas" lo dice todo.
+  $('#tabla-diferidos tbody').innerHTML = d.apiladas.map((a) => `
+    <tr>
+      <td>
+        <span class="strong">${escapar(a.nombre)}</span>
+        ${a.esSuscripcion ? '<span class="pill pill-sub">suscripción</span>' : ''}
+        ${a.cuotasVivas >= 5 ? `<span class="pill pill-int">se apila</span>` : ''}
+      </td>
+      <td class="r">${a.cuotasVivas}</td>
+      <td class="r">${formatoCOP(a.cuotaMensual)}</td>
+      <td class="r">${formatoCOP(a.comprado)}</td>
+      <td class="r"><span class="strong">${formatoCOP(a.saldoPendiente)}</span></td>
+      <td class="r">${a.restantesMax} meses</td>
+    </tr>
+  `).join('');
+
+  const subs = d.suscripcionesDiferidas;
+  const saldoSubs = subs.reduce((a, i) => a + i.saldoPendiente, 0);
+  const nota = $('#dif-nota');
+  nota.innerHTML =
+    (subs.length
+      ? `<b>${subs.length} de esas cuotas son de suscripciones</b> — ${d.comerciosSuscripcion} servicios, ${formatoCOP(saldoSubs)} de saldo. ` +
+        `Una suscripción se cobra todos los meses; si el banco difiere cada cobro a 36 cuotas, nunca terminás de pagar el mes 1 antes de que llegue el 21. `
+      : '') +
+    `La cuota es capital puro (${d.mayor ? `${escapar(d.mayor.nombre)}: ${formatoCOP(d.mayor.valorMovimiento)} entre ${d.mayor.cuotaTotal}` : ''}); ` +
+    `el interés se cobra aparte sobre el saldo total. Por eso la cuota se ve inofensiva y el saldo te cobra todos los meses.`;
+}
+
 function pintarDeuda(r) {
   const bloque = $('#bloque-deuda');
   const grupos = r.grupos.filter((g) => !g.esPrincipal);
@@ -463,12 +571,27 @@ function pintarDeuda(r) {
 
 // --- Simulador ------------------------------------------------------------
 
-function prepararSimulador(interes) {
-  // Si el extracto trae saldo, lo proponemos como punto de partida.
+function prepararSimulador(interes, diferidos) {
+  // El saldo: si hay diferidos, el saldo pendiente es el número real y sale
+  // del extracto. Si no, caemos al último saldo de la columna.
   const conSaldo = estado.transacciones.filter((t) => t.saldo != null);
-  const ultimoSaldo = conSaldo.length ? Math.abs(conSaldo[conSaldo.length - 1].saldo) : null;
+  const ultimoSaldo = diferidos?.saldoPendiente
+    || (conSaldo.length ? Math.abs(conSaldo[conSaldo.length - 1].saldo) : null);
   if (ultimoSaldo && !$('#sim-saldo').value) {
     $('#sim-saldo').value = new Intl.NumberFormat('es-CO').format(Math.round(ultimoSaldo));
+  }
+
+  // La tasa: si el extracto la trae impresa, la usamos. Esto NO es lo mismo
+  // que nuestra estimación — es el dato del banco, ponderado por saldo. Por eso
+  // sí lo rellenamos: la razón para no hacerlo era que estimar infla el número,
+  // y acá no estamos estimando nada.
+  const eaReal = tasaEADelExtracto(estado.transacciones);
+  if (eaReal && !$('#sim-ea').value) {
+    $('#sim-ea').value = (eaReal * 100).toFixed(2);
+    $('#nota-ea-estimada').innerHTML =
+      `Leída de tu extracto: <b>${formatoPct(eaReal)} E.A.</b>, ponderada por saldo. No es una estimación nuestra.`;
+    correrSimulacion();
+    return;
   }
 
   // Podemos estimar la tasa, pero NO la rellenamos sola. La estimación divide

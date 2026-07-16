@@ -99,7 +99,9 @@ node --test tests/test.mjs
 | `src/parse/numero.js` | `$1.234.567,89` → `1234567.89`. Y `45.000` son cuarenta y cinco **mil**. |
 | `src/parse/fecha.js` | `15/01/2026`, `15-ene-26`, `15 de enero de 2026`. DD/MM, no MM/DD. |
 | `src/parse/csv.js` | Olfatea el delimitador, encuentra la fila de encabezados entre la basura, hace match difuso de columnas en español. |
-| `src/parse/pdf.js` | Saca texto del PDF con pdf.js y busca líneas `FECHA DESCRIPCION $VALOR`. |
+| `src/parse/pdf.js` | Saca texto del PDF con pdf.js. Prueba los presets de banco y, si ninguno pega, cae al extractor genérico. |
+| `src/parse/bancolombia-visa.js` | **Preset Bancolombia Visa detallado.** El primero construido contra un extracto real. |
+| `src/motor/diferidos.js` | Lo que estás pagando a cuotas sin haberlo decidido, y cuánto se apila. |
 | `src/datos/cargos.js` | Patrones de cargos financieros. **Editable.** |
 | `src/datos/suscripciones.js` | Diccionario de comercios. **Editable — acá es donde más ayuda hace falta.** |
 | `src/motor/interes.js` | Clasifica cargos, suma el costo real de la deuda. |
@@ -127,17 +129,53 @@ pagaste, nunca como suma.
 Los tests en `tests/test.mjs` bajo `no se cuenta dos veces` existen para que esto
 no se rompa nunca.
 
+### Los diferidos: el hallazgo que cambió el producto
+
+La primera prueba con un extracto real (Bancolombia Visa, 9 páginas) rompió el
+modelo entero, y la lección vale más que el código:
+
+**Casi todo se difiere.** La tarjeta viene configurada para partir cada compra
+en 36 cuotas. Entonces "cuánto pagaste este mes" tiene tres respuestas posibles,
+y se llevan 18x entre ellas:
+
+| Lectura | Ejemplo |
+|---|---|
+| Suma de las compras | $18.000.000 |
+| **Suma de las cuotas** — lo que de verdad golpeó el mes | **$1.000.000** |
+| Suma de los saldos pendientes | $11.000.000 |
+
+En el extracto con el que probamos, la diferencia entre la primera y la segunda
+lectura era de **18x**.
+
+El parser genérico agarraba la última cifra de cada fila, o sea el **saldo
+pendiente**, y reportaba el saldo entero como "gasto del mes". Ahora `valor` es
+la cuota.
+
+**Y lo que se apila.** Una suscripción se cobra todos los meses. Si el banco
+difiere *cada cobro* a 36 cuotas, al mes 20 tenés 20 cuotas del mismo servicio
+corriendo a la vez y el saldo solo sube — nunca terminás de pagar el mes 1 antes
+de que llegue el 21. Eso dejó de ser una suscripción: es deuda que se acumula
+sola, y ningún extracto te lo dice. Por eso el bloque de diferidos agrupa por
+comercio y no por cuota: *"49 suscripciones diferidas"* es un número engañoso
+cuando en realidad son 6 servicios apilados.
+
+**La cuota es capital puro.** El interés no va adentro (3.600.000 / 36 = 100.000
+exacto): se cobra aparte, en una sola línea, sobre el saldo total. Por eso la
+cuota se ve inofensiva y el saldo te cobra todos los meses.
+
 ### Lo que NO hacemos
 
 - **No inventamos la tasa de usura.** Cambia cada mes y la publica la
   Superfinanciera. Quemarla en el código sería garantizar que quede
   desactualizada y mienta. La escribís vos, con el link al lado.
-- **No rellenamos tu tasa de interés.** Podemos estimarla, pero la estimación
-  divide el interés del mes por el saldo de cierre, cuando el interés real se
-  liquida sobre el saldo promedio diario. O sea, tira para arriba por
-  construcción. Ese campo alimenta la comparación con la usura, y un número
-  inflado acusaría a un banco de un delito por culpa de nuestra aritmética. Tu
-  extracto trae la tasa impresa: copiala.
+- **No *estimamos* tu tasa de interés.** Si el extracto la trae impresa (el de
+  Bancolombia la da por transacción), la leemos y la usamos, ponderada por
+  saldo: eso es un dato, no una cuenta nuestra. Si no la trae, el campo queda
+  vacío y lo llenás vos. Lo que no hacemos es *adivinarla*: nuestra estimación
+  divide el interés del mes por el saldo de cierre, cuando el interés se liquida
+  sobre el saldo promedio diario, o sea que tira para arriba por construcción.
+  Ese campo alimenta la comparación con la usura, y un número inflado te haría
+  acusar a un banco de un delito por culpa de nuestra aritmética.
 - **No sumamos sin mostrarte.** Siempre ves la tabla y podés destildar lo que
   esté mal clasificado antes de que sumemos nada.
 

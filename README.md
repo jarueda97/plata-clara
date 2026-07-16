@@ -37,8 +37,11 @@ Plata Clara pone esos dos números al lado, en pesos, en una pantalla.
 
 ## Cómo se usa
 
-Andá a [la app](#) (o correla local, ver abajo), arrastrá tu extracto, revisá
-que esté bien leído, y mirá el daño.
+**→ [plata-clara en vivo](https://jarueda97.github.io/plata-clara/)**
+
+Arrastrá tu extracto, revisá que esté bien leído, y mirá el daño. Nada se sube:
+la página se descarga una vez y el análisis corre en tu máquina. También podés
+[correrla local](#correlo-local).
 
 **Un consejo:** si podés, soltá dos o tres meses de una. Con un solo mes no
 podemos detectar recurrencia por repetición (nada se repite todavía), así que

@@ -8,7 +8,28 @@
    no una decoración.
    ============================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Fuentes propias, no de Google.
+   No es purismo: pedirle las fuentes a Google le cuenta a Google tu IP y que
+   estás usando una herramienta para auditar a tu banco. Un proyecto que se
+   para en "tu extracto no sale de tu navegador" no puede filtrar eso de una.
+   Son 56K de subset latin (cubre á é í ó ú ñ ü ¿ ¡) y de paso la app funciona
+   igual sin internet, que es lo que promete el FAQ. */
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('fuentes/space-grotesk.woff2') format('woff2-variations'),
+       url('fuentes/space-grotesk.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('fuentes/jetbrains-mono.woff2') format('woff2-variations'),
+       url('fuentes/jetbrains-mono.woff2') format('woff2');
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   --void:    #08080c;

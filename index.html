@@ -8,9 +8,9 @@
 <meta property="og:title" content="Plata Clara — ¿cuánto te costó tu banco este mes?">
 <meta property="og:description" content="Intereses, cargos y suscripciones, en pesos, en una pantalla. Sin servidor, sin cuenta, sin que tu extracto salga de tu máquina.">
 <meta property="og:type" content="website">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
+<link rel="preload" href="fuentes/space-grotesk.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fuentes/jetbrains-mono.woff2" as="font" type="font/woff2" crossorigin>
 </head>
 <body>
 
@@ -315,6 +315,12 @@
         a la pestaña Red, y subí tu archivo — no vas a ver ninguna petición saliendo
         con tus datos. También podés desconectar el wifi y usarlo igual. El código
         está abierto para que lo leas.
+      </p>
+      <p>
+        Tampoco hay terceros: ni analytics, ni cookies, ni las fuentes. Las fuentes
+        se sirven desde el mismo repo justamente porque pedírselas a Google le
+        contaría a Google tu IP y que estás auditando a tu banco. Si usás CSV, esta
+        página no le hace ni una sola petición a otro dominio.
       </p>
     </details>
 

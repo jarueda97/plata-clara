@@ -62,9 +62,14 @@ Verificalo vos mismo:
 
 O más fácil: desconectá el wifi y usalo igual. Funciona.
 
-> La única petición externa que puede salir es la de `pdf.js` desde un CDN, y
-> solo la primera vez que abrís un PDF. Después queda en caché. Si eso te
-> molesta, usá CSV y no sale ni una.
+**Cero terceros.** Las fuentes están servidas desde el propio repo, no desde
+Google. No es purismo: pedirle las fuentes a Google le cuenta a Google tu IP y
+que estás usando una herramienta para auditar a tu banco. Un proyecto que se
+para en "tu extracto no sale de tu navegador" no puede filtrar eso de una.
+
+> La única petición externa que existe es la de `pdf.js` desde un CDN, y solo si
+> abrís un PDF. Después queda en caché. Si eso te molesta, usá CSV y no sale ni
+> una — literalmente cero peticiones a otro dominio.
 
 ## Correlo local
 

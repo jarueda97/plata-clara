@@ -443,6 +443,23 @@ test('cuota fija le gana al mínimo', () => {
   assert.ok(fija.totalIntereses < min.totalIntereses);
 });
 
+test('las dos simulaciones devuelven curva graficable', () => {
+  // El gráfico depende de esto. simularCuotaFija no devolvía curva y por eso
+  // solo se dibujaba una línea de las dos.
+  const min = simularMinimo(5000000, 0.28);
+  const fija = simularCuotaFija(5000000, 0.28, 500000);
+  for (const [nombre, sim] of [['mínimo', min], ['cuota fija', fija]]) {
+    assert.ok(Array.isArray(sim.curva), `${nombre} debe traer curva`);
+    assert.equal(sim.curva.length, sim.meses, `${nombre}: un punto por mes`);
+    assert.ok(sim.curva.every((p) => p.saldo >= 0), `${nombre}: saldo nunca negativo`);
+    // El saldo solo baja.
+    for (let i = 1; i < sim.curva.length; i++) {
+      assert.ok(sim.curva[i].saldo <= sim.curva[i - 1].saldo, `${nombre}: la curva no puede subir`);
+    }
+    assert.equal(sim.curva[sim.curva.length - 1].saldo, 0, `${nombre}: termina en cero`);
+  }
+});
+
 test('simularCuotaFija: cuota que no cubre el interés no termina', () => {
   const r = simularCuotaFija(10000000, 0.30, 1000);
   assert.equal(r.nuncaTermina, true);

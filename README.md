@@ -133,6 +133,36 @@ no se rompa nunca.
 - **No sumamos sin mostrarte.** Siempre ves la tabla y podés destildar lo que
   esté mal clasificado antes de que sumemos nada.
 
+## Diseño
+
+Plata Clara habla el idioma visual de **Chidori Labs**: `--void` casi negro,
+acento `--volt`, Space Grotesk + JetBrains Mono, y el radio canónico de 14px que
+viene del sistema de Sombra. Nocturno por decisión, no por preferencia del
+sistema — no hay tema claro.
+
+Tres reglas que no son decorativas:
+
+- **Sin emoji.** Heredada de Sombra: *"la marca es severa y seca; los emoji
+  rompen el registro"*. Un 📺 al lado de una cifra de plata la hace ver de
+  juguete, y esta herramienta necesita que le creas. Las categorías usan iconos
+  de trazo (`src/datos/iconos.js`).
+- **Toda cifra de plata va en mono, con `tabular-nums`.** Es un recibo, no una
+  decoración: los números tienen que alinearse y poder compararse de un vistazo.
+- **Los colores del gráfico no son los acentos de marca.** Un mark y un acento
+  tienen oficios distintos. Los acentos (`--volt`, `--pink`) son brillantes para
+  UI sobre casi-negro; las marcas del gráfico (`--mark-min`, `--mark-fija`) son
+  escalones oscurecidos de los mismos tonos, dentro del band de L 0.48–0.67 que
+  exige el modo oscuro. Están validadas: ΔE 9.7 bajo deuteranopía, 30.7 en visión
+  normal, contraste ≥3:1 contra el panel. Además el gráfico lleva leyenda y
+  etiqueta directa, así que el color nunca es el único canal que carga la
+  identidad.
+
+La única animación del proyecto es el conteo de las dos cifras. Se gana el
+puesto: el número no es un dato, es el golpe, y verlo subir hace que llegue.
+Respeta `prefers-reduced-motion`, y tiene una red de seguridad que aterriza el
+valor correcto aunque los frames no corran (en pestaña oculta
+`requestAnimationFrame` se congela — sin la red, la cifra se quedaba en $0).
+
 ## Contribuir
 
 Lo más útil que podés hacer, en orden:

@@ -1,274 +1,320 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es-CO">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Plata Clara — ¿cuánto te está costando de verdad tu banco?</title>
-<meta name="description" content="Subí el extracto de tu banco y mirá cuánto pagaste en intereses y en suscripciones. Todo pasa en tu navegador: nada se sube a ningún lado.">
+<title>Plata Clara — ¿cuánto te costó tu banco este mes?</title>
+<meta name="description" content="Subí el extracto de tu banco y mirá cuánto pagaste en intereses y en suscripciones. Todo pasa en tu navegador: no hay servidor al cual subirlo.">
+<meta property="og:title" content="Plata Clara — ¿cuánto te costó tu banco este mes?">
+<meta property="og:description" content="Intereses, cargos y suscripciones, en pesos, en una pantalla. Sin servidor, sin cuenta, sin que tu extracto salga de tu máquina.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<header class="tope">
-  <div class="contenedor tope-fila">
-    <div class="marca">
-      <span class="marca-punto"></span>
-      <span class="marca-nombre">Plata Clara</span>
+<header>
+  <div class="wrap bar">
+    <a href="#" class="brand">
+      <span class="mk">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M13 2 L4 14 H11 L9 22 L20 9 H12 Z" fill="#08080c"/></svg>
+      </span>
+      Plata Clara
+    </a>
+    <div class="right">
+      <a href="#faq" class="ghost">// preguntas</a>
+      <a href="https://github.com/jarueda97/plata-clara" target="_blank" rel="noopener" class="ghost">// código</a>
     </div>
-    <a class="tope-link" href="https://github.com/jarueda97/plata-clara" target="_blank" rel="noopener">Código abierto ↗</a>
   </div>
 </header>
 
-<main class="contenedor">
+<main>
 
-  <!-- ===== Entrada ===== -->
-  <section id="pantalla-entrada">
-    <h1 class="titulo">¿Cuánto te costó<br>tu banco este mes?</h1>
-    <p class="bajada">
-      Subí el extracto de tu tarjeta o tu cuenta. Te decimos cuánto pagaste en
-      <strong>intereses y cargos</strong>, y cuánto en <strong>suscripciones</strong> —
-      incluyendo lo que el banco le monta encima y no aparece en el precio de lista.
-    </p>
+<!-- ══════════ ENTRADA ══════════ -->
+<section class="hero" id="pantalla-entrada">
+  <div class="wrap">
+    <div class="status"><span class="live"></span> SIN SERVIDOR · SIN CUENTA · NADA SE SUBE</div>
 
-    <div class="privacidad">
-      <span class="candado">🔒</span>
+    <h1>¿Cuánto te costó tu <span class="p">banco</span> este mes?</h1>
+
+    <div class="sub-row">
+      <p class="lede">
+        <b>Subí el extracto de tu tarjeta o tu cuenta.</b> Te decimos cuánto pagaste
+        en intereses y cargos, y cuánto en suscripciones — con lo que el banco le
+        monta encima y no aparece en el precio de lista.
+      </p>
+    </div>
+
+    <div class="privacy" style="margin-top:40px">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       <div>
-        <strong>Tu extracto no sale de tu navegador.</strong>
-        No hay servidor, no hay cuenta, no hay base de datos. Podés desconectar
-        el internet y esto sigue funcionando. <a href="#faq">Cómo verificarlo</a>.
+        <b>Tu extracto no sale de tu navegador.</b> No es una promesa: es que no hay
+        backend al cual mandarlo. Podés desconectar el internet y esto sigue
+        funcionando. <a href="#faq">Cómo verificarlo</a>.
       </div>
     </div>
 
-    <div id="zona" class="zona" tabindex="0" role="button" aria-label="Subir extracto">
-      <div class="zona-icono">📄</div>
-      <p class="zona-titulo">Arrastrá tu extracto acá</p>
-      <p class="zona-sub">CSV o PDF · podés soltar varios meses de una</p>
-      <button class="boton" id="btn-elegir" type="button">Elegir archivo</button>
+    <div id="zona" class="zone" tabindex="0" role="button" aria-label="Subir extracto">
+      <div class="ic">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg>
+      </div>
+      <p class="t">Arrastrá tu extracto acá</p>
+      <p class="s">CSV o PDF · podés soltar varios meses de una</p>
+      <button class="btn btn-volt" id="btn-elegir" type="button">Elegir archivo</button>
       <input type="file" id="input-archivo" accept=".csv,.txt,.pdf" multiple hidden>
     </div>
 
-    <p class="zona-ayuda">
+    <p class="zone-help">
       ¿No tenés el archivo a la mano?
-      <button class="enlace" id="btn-demo" type="button">Probá con un extracto de ejemplo</button>
+      <button class="link" id="btn-demo" type="button">Probá con un extracto de ejemplo</button>
     </p>
 
-    <div id="errores" class="errores" hidden></div>
-  </section>
+    <div id="errores" class="alert alert-bad" style="margin-top:18px" hidden></div>
+  </div>
+</section>
 
-  <!-- ===== Confirmación ===== -->
-  <section id="pantalla-revision" hidden>
-    <div class="seccion-tope">
+<!-- ══════════ REVISIÓN ══════════ -->
+<section id="pantalla-revision" hidden>
+  <div class="wrap">
+    <div class="sec-head">
       <div>
-        <h2 class="h2">Revisá que esté bien leído</h2>
-        <p class="sub" id="resumen-lectura"></p>
+        <p class="kicker" style="margin-bottom:14px">01 — <span class="b">revisá la lectura</span></p>
+        <h2>Antes de sumar,<br>confirmá que esté bien leído.</h2>
       </div>
-      <button class="boton boton-fantasma" id="btn-reiniciar" type="button">Empezar de nuevo</button>
+      <p class="meta" id="resumen-lectura"></p>
     </div>
 
-    <div class="aviso" id="aviso-signo" hidden>
-      <strong>Ojo:</strong> vemos más entradas que salidas, lo cual es raro en un extracto.
+    <div class="alert alert-warn" id="aviso-signo" hidden>
+      <b>Ojo:</b> vemos más entradas que salidas, lo cual es raro en un extracto.
       Puede que los signos estén al revés.
-      <button class="enlace" id="btn-invertir" type="button">Invertir signos</button>
+      <button class="link" id="btn-invertir" type="button">Invertir signos</button>
     </div>
 
-    <div class="controles">
-      <label class="control">
-        <span class="control-etiqueta">Tipo de cuenta</span>
+    <div class="controls">
+      <label class="ctl">
+        <span class="ctl-label">Tipo de cuenta</span>
         <select id="tipo-cuenta">
           <option value="credito">Tarjeta de crédito</option>
           <option value="debito">Cuenta de ahorros / corriente</option>
         </select>
-        <span class="control-nota">La cuenta de ahorros paga 4x1000; la tarjeta no.</span>
+        <span class="ctl-note">La cuenta de ahorros paga 4x1000; la tarjeta no.</span>
       </label>
-
-      <label class="control">
-        <span class="control-etiqueta">Comisión internacional de tu banco</span>
-        <div class="input-sufijo">
-          <input type="number" id="comision-intl" value="3" min="0" max="10" step="0.1">
-          <span>%</span>
-        </div>
-        <span class="control-nota">Suele estar entre 2% y 3%. Está en tu contrato.</span>
+      <label class="ctl">
+        <span class="ctl-label">Comisión internacional</span>
+        <div class="affix"><input type="number" id="comision-intl" value="3" min="0" max="10" step="0.1"><span>%</span></div>
+        <span class="ctl-note">Solo se usa si tu extracto no la trae. Suele ser 2%–3%.</span>
       </label>
-
-      <label class="control">
-        <span class="control-etiqueta">Spread de TRM estimado</span>
-        <div class="input-sufijo">
-          <input type="number" id="spread-trm" value="2" min="0" max="10" step="0.1">
-          <span>%</span>
-        </div>
-        <span class="control-nota">Cuánto se aleja la tasa del banco de la TRM oficial.</span>
+      <label class="ctl">
+        <span class="ctl-label">Spread de TRM estimado</span>
+        <div class="affix"><input type="number" id="spread-trm" value="2" min="0" max="10" step="0.1"><span>%</span></div>
+        <span class="ctl-note">Cuánto se aleja la tasa del banco de la TRM oficial.</span>
       </label>
     </div>
 
-    <div class="tabla-envoltura">
-      <table class="tabla" id="tabla-revision">
+    <div class="tbl-wrap">
+      <table id="tabla-revision">
         <thead>
           <tr>
             <th>Fecha</th>
             <th>Descripción</th>
-            <th class="num">Valor</th>
-            <th>Lo clasificamos como</th>
-            <th class="centro">Contar</th>
+            <th class="r">Valor</th>
+            <th>Lo leímos como</th>
+            <th style="text-align:center">Contar</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
     </div>
 
-    <div class="acciones">
-      <button class="boton boton-grande" id="btn-analizar" type="button">Ver el daño →</button>
+    <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap">
+      <button class="btn btn-volt" id="btn-analizar" type="button">Ver el daño <span class="arr">→</span></button>
+      <button class="btn btn-line" id="btn-reiniciar" type="button">Empezar de nuevo</button>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ===== Resultados ===== -->
-  <section id="pantalla-resultados" hidden>
-    <div class="seccion-tope">
+<!-- ══════════ RESULTADOS ══════════ -->
+<section id="pantalla-resultados" hidden>
+  <div class="wrap">
+
+    <div class="sec-head">
       <div>
-        <h2 class="h2">Esto te costó <span id="periodo-texto">el periodo</span></h2>
-        <p class="sub" id="resumen-periodo"></p>
+        <p class="kicker" style="margin-bottom:14px">02 — <span class="b">el daño</span></p>
+        <h2>Esto te costó <span id="periodo-texto">el periodo</span>.</h2>
+        <p class="meta" id="resumen-periodo" style="margin-top:10px"></p>
       </div>
-      <div class="botonera">
-        <button class="boton boton-fantasma" id="btn-volver" type="button">← Revisar</button>
-        <button class="boton boton-fantasma" id="btn-exportar" type="button">Exportar JSON</button>
-        <button class="boton boton-fantasma" id="btn-otro" type="button">Otro extracto</button>
+      <div class="tools">
+        <button class="btn btn-line btn-sm" id="btn-volver" type="button">← Revisar</button>
+        <button class="btn btn-line btn-sm" id="btn-exportar" type="button">Exportar JSON</button>
+        <button class="btn btn-line btn-sm" id="btn-otro" type="button">Otro extracto</button>
       </div>
     </div>
 
-    <!-- Las dos cifras -->
-    <div class="tarjetas">
-      <article class="tarjeta tarjeta-interes">
-        <p class="tarjeta-titulo">Intereses y cargos</p>
-        <p class="cifra" id="cifra-interes">—</p>
-        <p class="tarjeta-pie" id="pie-interes"></p>
-        <div class="desglose" id="desglose-interes"></div>
+    <div class="figures">
+      <article class="fig fig-int">
+        <p class="hd"><span class="dot"></span> Intereses y cargos</p>
+        <p class="n" id="cifra-interes">$ 0</p>
+        <p class="cap" id="pie-interes"></p>
+        <div class="breakdown" id="desglose-interes"></div>
       </article>
-
-      <article class="tarjeta tarjeta-subs">
-        <p class="tarjeta-titulo">Suscripciones</p>
-        <p class="cifra" id="cifra-subs">—</p>
-        <p class="tarjeta-pie" id="pie-subs"></p>
-        <div class="desglose" id="desglose-subs"></div>
+      <article class="fig fig-subs">
+        <p class="hd"><span class="dot"></span> Suscripciones</p>
+        <p class="n" id="cifra-subs">$ 0</p>
+        <p class="cap" id="pie-subs"></p>
+        <div class="breakdown" id="desglose-subs"></div>
       </article>
     </div>
 
-    <p class="golpe" id="golpe" hidden></p>
+    <p class="punch" id="golpe" hidden></p>
+  </div>
 
-    <!-- Lo que no ves -->
-    <section class="bloque" id="bloque-oculto" hidden>
-      <h3 class="h3">Lo que no aparece en el precio de lista</h3>
-      <p class="bloque-sub">
-        Tus suscripciones en dólares no cuestan lo que dice la página. El banco
-        les monta una comisión internacional con su IVA — eso sale como línea
-        aparte en tu extracto y <strong>se suma</strong>. Y aparte te aplica su
-        propia tasa de cambio, que ya viene <strong>adentro</strong> del monto en
-        pesos y por eso no la ves en ninguna línea.
-      </p>
-      <div class="tabla-envoltura">
-        <table class="tabla" id="tabla-oculto">
+  <!-- lo que no ves -->
+  <section id="bloque-oculto" hidden style="padding-bottom:0">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="kicker" style="margin-bottom:14px">03 — <span class="b">lo que no ves</span></p>
+          <h2>Tus suscripciones en dólares no cuestan lo que dice la página.</h2>
+        </div>
+        <p class="meta">
+          El banco cobra una comisión internacional con su IVA — eso es una línea
+          aparte y <b style="color:var(--fog-2)">se suma</b>. Y aparte te aplica su
+          propia tasa de cambio, que viene <b style="color:var(--fog-2)">adentro</b>
+          del monto en pesos y por eso no la ves en ninguna línea.
+        </p>
+      </div>
+      <div class="tbl-wrap">
+        <table id="tabla-oculto">
           <thead>
             <tr>
               <th>Suscripción</th>
-              <th class="num">Lo que ves</th>
-              <th class="num">Comisión + IVA</th>
-              <th class="num">Lo que pagás</th>
-              <th class="num">Margen de cambio<br><span class="th-nota">(ya incluido)</span></th>
-              <th class="num">Al año</th>
+              <th class="r">Lo que ves</th>
+              <th class="r">Comisión + IVA</th>
+              <th class="r">Lo que pagás</th>
+              <th class="r">Margen de cambio<br><span class="th-sub">(ya incluido)</span></th>
+              <th class="r">Al año</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
-      <p class="nota" id="nota-oculto"></p>
-      <p class="nota" id="aviso-comisiones" hidden></p>
-    </section>
+      <p class="note" id="nota-oculto"></p>
+      <p class="note" id="aviso-comisiones" hidden></p>
+    </div>
+  </section>
 
-    <!-- Suscripciones -->
-    <section class="bloque" id="bloque-subs" hidden>
-      <h3 class="h3">Tus suscripciones</h3>
+  <!-- suscripciones -->
+  <section id="bloque-subs" hidden style="padding-bottom:0">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="kicker" style="margin-bottom:14px">04 — <span class="b">lo recurrente</span></p>
+          <h2>Tus suscripciones.</h2>
+        </div>
+      </div>
       <div id="categorias"></div>
-      <p class="nota" id="nota-supuesto" hidden></p>
-    </section>
+      <p class="note" id="nota-supuesto" hidden></p>
+    </div>
+  </section>
 
-    <!-- Costo de la deuda -->
-    <section class="bloque" id="bloque-deuda" hidden>
-      <h3 class="h3">El costo de tu deuda</h3>
-      <div class="tabla-envoltura">
-        <table class="tabla" id="tabla-deuda">
+  <!-- costo de la deuda -->
+  <section id="bloque-deuda" hidden style="padding-bottom:0">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="kicker" style="margin-bottom:14px">05 — <span class="b">el costo de deber</span></p>
+          <h2>Solo una parte se llama "intereses".</h2>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table id="tabla-deuda">
           <thead>
-            <tr><th>Concepto</th><th class="num">Veces</th><th class="num">Total</th><th class="num">% del costo</th></tr>
+            <tr><th>Concepto</th><th class="r">Veces</th><th class="r">Total</th><th class="r">% del costo</th></tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- Simulador -->
-    <section class="bloque" id="bloque-sim">
-      <h3 class="h3">¿Y si seguís pagando el mínimo?</h3>
-      <p class="bloque-sub">
-        No podemos sacar tu saldo ni tu tasa del extracto con certeza, así que
-        los ponés vos. Están en la primera página de tu extracto.
-      </p>
+  <!-- simulador -->
+  <section id="bloque-sim">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="kicker" style="margin-bottom:14px">06 — <span class="b">la trampa del mínimo</span></p>
+          <h2>¿Y si seguís pagando el mínimo?</h2>
+        </div>
+        <p class="meta">
+          Tu saldo y tu tasa no los podemos sacar del extracto con certeza, así
+          que los ponés vos. Salen impresos en la primera página.
+        </p>
+      </div>
 
-      <div class="controles">
-        <label class="control">
-          <span class="control-etiqueta">Saldo que debés</span>
-          <div class="input-prefijo">
-            <span>$</span>
-            <input type="text" id="sim-saldo" inputmode="numeric" placeholder="5.000.000">
-          </div>
+      <div class="controls">
+        <label class="ctl">
+          <span class="ctl-label">Saldo que debés</span>
+          <div class="affix"><span>$</span><input type="text" id="sim-saldo" inputmode="numeric" placeholder="5.000.000"></div>
         </label>
-        <label class="control">
-          <span class="control-etiqueta">Tu tasa (E.A.), la que dice tu extracto</span>
-          <div class="input-sufijo">
-            <input type="number" id="sim-ea" step="0.01" placeholder="28,5">
-            <span>%</span>
-          </div>
-          <span class="control-nota" id="nota-ea-estimada"></span>
+        <label class="ctl">
+          <span class="ctl-label">Tu tasa E.A., la del extracto</span>
+          <div class="affix"><input type="number" id="sim-ea" step="0.01" placeholder="28,5"><span>%</span></div>
+          <span class="ctl-note" id="nota-ea-estimada"></span>
         </label>
-        <label class="control">
-          <span class="control-etiqueta">Tasa de usura del mes</span>
-          <div class="input-sufijo">
-            <input type="number" id="sim-usura" step="0.01" placeholder="opcional">
-            <span>%</span>
-          </div>
-          <span class="control-nota">
+        <label class="ctl">
+          <span class="ctl-label">Si pagaras fijo cada mes</span>
+          <div class="affix"><span>$</span><input type="text" id="sim-cuota" inputmode="numeric" placeholder="500.000"></div>
+        </label>
+        <label class="ctl">
+          <span class="ctl-label">Tasa de usura del mes</span>
+          <div class="affix"><input type="number" id="sim-usura" step="0.01" placeholder="opcional"><span>%</span></div>
+          <span class="ctl-note">
             La publica la <a href="https://www.superfinanciera.gov.co/publicaciones/60955/tasas-de-interes-bancario-corriente-60955/" target="_blank" rel="noopener">Superfinanciera</a> cada mes. No la quemamos en el código para no mentirte.
           </span>
         </label>
-        <label class="control">
-          <span class="control-etiqueta">Si pagaras fijo cada mes</span>
-          <div class="input-prefijo">
-            <span>$</span>
-            <input type="text" id="sim-cuota" inputmode="numeric" placeholder="500.000">
-          </div>
-        </label>
       </div>
 
-      <div id="sim-salida" class="sim-salida" hidden></div>
-      <div id="usura-salida" class="usura-salida" hidden></div>
-    </section>
+      <div id="sim-salida" class="sim-out" hidden></div>
 
-    <p class="descargo">
-      Plata Clara hace estimaciones a partir de lo que dice tu extracto. No es
-      asesoría financiera y puede equivocarse leyendo el archivo de tu banco —
-      por eso te mostramos la tabla antes de sumar. La cifra que manda siempre
-      es la de tu banco.
-    </p>
+      <div id="chart-card" class="chart-card" hidden>
+        <div class="chart-hd">
+          <span class="chart-title">Tu saldo, mes a mes</span>
+          <div class="legend" id="chart-legend"></div>
+        </div>
+        <p class="chart-sub" id="chart-sub"></p>
+        <div class="chart" id="chart" style="position:relative"></div>
+      </div>
+
+      <div id="usura-salida" class="usura-out" hidden></div>
+
+      <p class="disclaimer">
+        Plata Clara estima a partir de lo que dice tu extracto. No es asesoría
+        financiera y puede equivocarse leyendo el archivo de tu banco — por eso te
+        mostramos la tabla antes de sumar. La cifra que manda siempre es la de tu banco.
+      </p>
+    </div>
   </section>
+</section>
 
-  <!-- ===== FAQ ===== -->
-  <section class="bloque faq" id="faq">
-    <h3 class="h3">Preguntas</h3>
+<!-- ══════════ FAQ ══════════ -->
+<section class="faq" id="faq" style="border-top:1px solid var(--line)">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <p class="kicker" style="margin-bottom:14px">07 — <span class="b">preguntas</span></p>
+        <h2>Lo que seguro te estás preguntando.</h2>
+      </div>
+    </div>
 
     <details>
       <summary>¿De verdad no suben mi extracto a ningún lado?</summary>
       <p>
-        De verdad. Todo el análisis corre en JavaScript dentro de tu navegador.
-        No hay backend. Para comprobarlo: abrí las herramientas de desarrollo
-        (F12), andá a la pestaña <em>Red</em>, y subí tu archivo — no vas a ver
-        ninguna petición saliendo con tus datos. También podés desconectar el
-        wifi y usarlo igual. El código está abierto para que lo leas.
+        De verdad. Todo el análisis corre en JavaScript dentro de tu navegador; no
+        hay backend. Para comprobarlo: abrí las herramientas de desarrollo (F12), andá
+        a la pestaña Red, y subí tu archivo — no vas a ver ninguna petición saliendo
+        con tus datos. También podés desconectar el wifi y usarlo igual. El código
+        está abierto para que lo leas.
       </p>
     </details>
 
@@ -276,56 +322,63 @@
       <summary>¿Por qué necesitan varios meses para detectar suscripciones?</summary>
       <p>
         Con un solo mes nada se repite todavía, así que no podemos detectar
-        recurrencia por repetición: reconocemos los comercios por nombre contra
-        un diccionario. Eso encuentra a Netflix y a ChatGPT, pero no encuentra
-        al gimnasio de tu barrio. Si soltás dos o tres meses, además detectamos
-        cualquier cobro que se repita cada ~30 días, aunque no sepamos qué es.
+        recurrencia por repetición: reconocemos los comercios por nombre contra un
+        diccionario. Eso encuentra a Netflix y a ChatGPT, pero no al gimnasio de tu
+        barrio. Si soltás dos o tres meses, además detectamos cualquier cobro que se
+        repita cada ~30 días, aunque no sepamos qué es.
       </p>
     </details>
 
     <details>
-      <summary>¿Por qué mi suscripción "cuesta más" de lo que dice la página?</summary>
+      <summary>¿Por qué mi suscripción cuesta más de lo que dice la página?</summary>
       <p>
         Porque si te factura en dólares, el banco le suma una comisión por
-        transacción internacional (2%–3%), el IVA del 19% sobre esa comisión, y
-        aplica su propia tasa de cambio, que casi nunca es la TRM oficial. Todo
-        junto es fácilmente 5%–6% encima. Esos porcentajes los podés ajustar a
-        los de tu banco arriba.
+        transacción internacional (2%–3%) más el IVA del 19% sobre esa comisión, y
+        aplica su propia tasa de cambio, que casi nunca es la TRM oficial. Todo junto
+        es fácilmente 5%–6% encima. Esos porcentajes los podés ajustar a los de tu
+        banco antes de analizar.
+      </p>
+    </details>
+
+    <details>
+      <summary>¿Por qué no me rellenan la tasa de interés?</summary>
+      <p>
+        Podemos estimarla, pero la estimación divide el interés del mes por el saldo
+        de cierre, cuando el interés real se liquida sobre el saldo promedio diario —
+        o sea que tira para arriba por construcción. Ese campo alimenta la comparación
+        con la usura, y un número inflado te haría acusar a un banco de un delito por
+        culpa de nuestra aritmética. Tu extracto trae la tasa impresa: copiala.
       </p>
     </details>
 
     <details>
       <summary>Leyó mal mi extracto</summary>
       <p>
-        Puede pasar: cada banco exporta distinto y no tenemos extractos reales
-        de todos. Por eso siempre te mostramos la tabla antes de sumar, para que
-        destildes lo que esté mal. Si querés que lo arreglemos para tu banco,
-        abrí un issue con la fila de encabezados de tu CSV (sin datos personales)
-        y lo agregamos.
+        Puede pasar: cada banco exporta distinto y no tenemos extractos reales de
+        todos. Por eso siempre te mostramos la tabla antes de sumar, para que
+        destildes lo que esté mal. Si querés que lo arreglemos para tu banco, abrí un
+        issue con la fila de encabezados de tu CSV — sin datos personales — y lo
+        agregamos.
       </p>
     </details>
 
     <details>
       <summary>¿Por qué no se conecta a mi banco directamente?</summary>
       <p>
-        Porque eso obligaría a tener un servidor, pedirte las claves de tu banco
-        o pagarle a un agregador, y a que confiés en nosotros. Un archivo que vos
+        Porque eso obligaría a tener un servidor, pedirte las claves de tu banco o
+        pagarle a un agregador, y a que confiés en nosotros. Un archivo que vos
         descargás y que nunca se sube no requiere confiar en nadie.
       </p>
     </details>
-  </section>
+  </div>
+</section>
 
 </main>
 
-<footer class="pie">
-  <div class="contenedor">
-    <p>
-      Plata Clara · software libre bajo licencia MIT ·
-      <a href="https://github.com/jarueda97/plata-clara" target="_blank" rel="noopener">contribuí en GitHub</a>
-    </p>
-    <p class="pie-nota">
-      Hecho en Colombia. Ningún banco patrocina esto, por razones evidentes.
-    </p>
+<footer>
+  <div class="wrap row">
+    <span>Plata Clara — software libre (MIT) · un proyecto de <a href="https://github.com/jarueda97" target="_blank" rel="noopener">Chidori Labs</a></span>
+    <span>Ningún banco patrocina esto, por razones evidentes.</span>
   </div>
 </footer>
 

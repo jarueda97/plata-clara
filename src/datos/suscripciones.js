@@ -114,18 +114,19 @@ export const SUSCRIPCIONES = [
   { nombre: 'Medium', categoria: 'otros', moneda: 'USD', patrones: ['MEDIUM MONTHLY', 'MEDIUM COM'] },
 ];
 
+// Sin emoji, a propósito: ver src/datos/iconos.js
 export const CATEGORIAS = {
-  streaming: { etiqueta: 'Streaming', emoji: '📺' },
-  musica: { etiqueta: 'Música y audio', emoji: '🎧' },
-  ia: { etiqueta: 'Inteligencia artificial', emoji: '🤖' },
-  software: { etiqueta: 'Software y nube', emoji: '💾' },
-  domicilios: { etiqueta: 'Domicilios', emoji: '🛵' },
-  gimnasio: { etiqueta: 'Gimnasio', emoji: '🏋️' },
-  telco: { etiqueta: 'Celular e internet', emoji: '📱' },
-  juegos: { etiqueta: 'Juegos', emoji: '🎮' },
-  educacion: { etiqueta: 'Educación', emoji: '📚' },
-  otros: { etiqueta: 'Otros', emoji: '🔁' },
-  sospechosa: { etiqueta: 'Posible suscripción', emoji: '❓' },
+  streaming: { etiqueta: 'Streaming' },
+  musica: { etiqueta: 'Música y audio' },
+  ia: { etiqueta: 'Inteligencia artificial' },
+  software: { etiqueta: 'Software y nube' },
+  domicilios: { etiqueta: 'Domicilios' },
+  gimnasio: { etiqueta: 'Gimnasio' },
+  telco: { etiqueta: 'Celular e internet' },
+  juegos: { etiqueta: 'Juegos' },
+  educacion: { etiqueta: 'Educación' },
+  otros: { etiqueta: 'Otros' },
+  sospechosa: { etiqueta: 'Posible suscripción' },
 };
 
 // Palabras que delatan un cobro recurrente aunque no conozcamos el comercio.

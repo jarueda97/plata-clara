@@ -82,19 +82,21 @@ export function simularCuotaFija(saldo, ea, cuota, { maxMeses = SUPUESTOS_MINIMO
   let s = saldo;
   let totalPagado = 0;
   let totalIntereses = 0;
+  const curva = [];
 
   for (let mes = 1; mes <= maxMeses; mes++) {
     const interes = s * i;
     if (cuota <= interes) {
-      return { meses: null, totalPagado, totalIntereses, nuncaTermina: true };
+      return { meses: null, totalPagado, totalIntereses, nuncaTermina: true, curva };
     }
     const pago = Math.min(cuota, s + interes);
     s = s + interes - pago;
     totalPagado += pago;
     totalIntereses += interes;
-    if (s <= 0.5) return { meses: mes, totalPagado, totalIntereses, nuncaTermina: false };
+    curva.push({ mes, saldo: Math.max(s, 0), pago, interes });
+    if (s <= 0.5) return { meses: mes, totalPagado, totalIntereses, nuncaTermina: false, curva };
   }
-  return { meses: null, totalPagado, totalIntereses, nuncaTermina: true };
+  return { meses: null, totalPagado, totalIntereses, nuncaTermina: true, curva };
 }
 
 /**
@@ -102,11 +104,11 @@ export function simularCuotaFija(saldo, ea, cuota, { maxMeses = SUPUESTOS_MINIMO
  * "son 14 almuerzos" sí.
  */
 export const EQUIVALENCIAS = [
-  { nombre: 'almuerzos corrientes', unitario: 18000, emoji: '🍽️' },
-  { nombre: 'meses de Netflix', unitario: 26900, emoji: '📺' },
-  { nombre: 'tanqueadas de moto', unitario: 25000, emoji: '🏍️' },
-  { nombre: 'carreras en taxi', unitario: 15000, emoji: '🚕' },
-  { nombre: 'salarios mínimos', unitario: 1423500, emoji: '💼' },
+  { nombre: 'almuerzos corrientes', unitario: 18000 },
+  { nombre: 'meses de Netflix', unitario: 26900 },
+  { nombre: 'tanqueadas de moto', unitario: 25000 },
+  { nombre: 'carreras en taxi', unitario: 15000 },
+  { nombre: 'salarios mínimos', unitario: 1423500 },
 ];
 
 /** Elige la equivalencia que dé un número entre 2 y 40 (la que más "pega"). */

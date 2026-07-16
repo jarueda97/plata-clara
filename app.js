@@ -7,6 +7,8 @@ import { parsearCSV, detectarEncabezados, filasATransacciones, sugiereInvertirSi
 import { transaccionesDePDF } from './src/parse/pdf.js';
 import { CARGOS, POR_CLAVE } from './src/datos/cargos.js';
 import { TARIFAS } from './src/datos/tarifas.js';
+import { iconoDe } from './src/datos/iconos.js';
+import { dibujarAmortizacion, leyenda } from './src/vista/grafico.js';
 import { analizarInteres, clasificarCargo, estimarEA, compararUsura } from './src/motor/interes.js';
 import { analizarSuscripciones, identificarComercio, pareceRecurrente } from './src/motor/suscripciones.js';
 import { simularMinimo, simularCuotaFija, equivalencia } from './src/motor/minimo.js';
@@ -37,9 +39,9 @@ $('#btn-elegir').addEventListener('click', (e) => { e.stopPropagation(); inputAr
 inputArchivo.addEventListener('change', (e) => cargarArchivos([...e.target.files]));
 
 ['dragenter', 'dragover'].forEach((ev) =>
-  zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.add('activa'); }));
+  zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.add('on'); }));
 ['dragleave', 'drop'].forEach((ev) =>
-  zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.remove('activa'); }));
+  zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.remove('on'); }));
 zona.addEventListener('drop', (e) => cargarArchivos([...e.dataTransfer.files]));
 
 async function cargarArchivos(archivos) {
@@ -122,7 +124,7 @@ function pintarTablaRevision() {
   for (const t of estado.transacciones) {
     const tr = document.createElement('tr');
     const excluido = estado.excluidos.has(t.id);
-    if (excluido) tr.classList.add('apagada');
+    if (excluido) tr.classList.add('off');
 
     const cargo = estado.forzados.has(t.id)
       ? { clave: estado.forzados.get(t.id), etiqueta: POR_CLAVE[estado.forzados.get(t.id)].etiqueta }
@@ -132,10 +134,10 @@ function pintarTablaRevision() {
 
     tr.innerHTML = `
       <td>${t.fecha.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}</td>
-      <td class="celda-desc"><span class="desc-texto" title="${escapar(t.descripcion)}">${escapar(t.descripcion)}</span></td>
-      <td class="num">${formatoCOP(t.valor)}</td>
+      <td class="cell-desc"><span title="${escapar(t.descripcion)}">${escapar(t.descripcion)}</span></td>
+      <td class="r">${formatoCOP(t.valor)}</td>
       <td>${etiquetaDe(t, cargo, comercio, sospecha)}</td>
-      <td class="centro">
+      <td style="text-align:center">
         <input type="checkbox" ${excluido ? '' : 'checked'} data-id="${t.id}"
                aria-label="Contar este movimiento">
       </td>
@@ -147,7 +149,7 @@ function pintarTablaRevision() {
     cb.addEventListener('change', () => {
       const id = cb.dataset.id;
       if (cb.checked) estado.excluidos.delete(id); else estado.excluidos.add(id);
-      cb.closest('tr').classList.toggle('apagada', !cb.checked);
+      cb.closest('tr').classList.toggle('off', !cb.checked);
     });
   });
 
@@ -162,20 +164,20 @@ function pintarTablaRevision() {
 }
 
 function etiquetaDe(t, cargo, comercio, sospecha) {
-  if (t.valor < 0) return '<span class="pastilla pastilla-neutra">Abono (entra plata)</span>';
+  if (t.valor < 0) return '<span class="pill pill-mute">Abono (entra plata)</span>';
 
   if (cargo) {
     const def = POR_CLAVE[cargo.clave];
-    const clase = def?.esInteres ? 'pastilla-interes' : 'pastilla-cargo';
-    const alerta = def?.revisar ? ' <span class="control-nota">¿seguro?</span>' : '';
-    return `<span class="pastilla ${clase}">${escapar(cargo.etiqueta)}</span>${alerta}`;
+    const clase = def?.esInteres ? 'pill-int' : 'pill-fee';
+    const alerta = def?.revisar ? ' <span class="ctl-note">¿seguro?</span>' : '';
+    return `<span class="pill ${clase}">${escapar(cargo.etiqueta)}</span>${alerta}`;
   }
   if (comercio) {
-    const usd = comercio.moneda === 'USD' ? ' <span class="pastilla pastilla-usd">USD</span>' : '';
-    return `<span class="pastilla pastilla-sub">${escapar(comercio.nombre)}</span>${usd}`;
+    const usd = comercio.moneda === 'USD' ? ' <span class="pill pill-usd">USD</span>' : '';
+    return `<span class="pill pill-sub">${escapar(comercio.nombre)}</span>${usd}`;
   }
   if (sospecha) {
-    return '<span class="pastilla pastilla-sub">Posible suscripción</span>';
+    return '<span class="pill pill-sub">Posible suscripción</span>';
   }
   // Compra normal: le damos al usuario la opción de reclasificarla.
   return selectorReclasificar(t.id);
@@ -274,8 +276,38 @@ function pintarResultados() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+/**
+ * Cuenta la cifra desde cero hasta el valor. Es el único adorno del proyecto
+ * y se gana el puesto: el número no es un dato, es el golpe. Verlo subir hace
+ * que llegue.
+ * Respeta prefers-reduced-motion — ahí simplemente aparece.
+ */
+function contarHasta(el, valor, { ms = 900 } = {}) {
+  const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // En pestaña oculta, requestAnimationFrame no corre. Sin esto la cifra se
+  // queda congelada en $0 — que es justo la cifra que no queremos mostrar.
+  if (quieto || !valor || document.hidden) { el.textContent = formatoCOP(valor); return; }
+
+  const t0 = performance.now();
+  let vivo = true;
+
+  const paso = (ahora) => {
+    if (!vivo) return;
+    const p = Math.min((ahora - t0) / ms, 1);
+    const e = 1 - (1 - p) ** 4;            // easeOutQuart
+    el.textContent = formatoCOP(valor * e);
+    if (p < 1) requestAnimationFrame(paso);
+    else vivo = false;
+  };
+  requestAnimationFrame(paso);
+
+  // Red de seguridad: pase lo que pase con los frames, la cifra correcta
+  // aterriza. La animación es un adorno; el número no es negociable.
+  setTimeout(() => { vivo = false; el.textContent = formatoCOP(valor); }, ms + 80);
+}
+
 function pintarInteres(r) {
-  $('#cifra-interes').textContent = formatoCOP(r.costoTotal);
+  contarHasta($('#cifra-interes'), r.costoTotal);
 
   if (r.costoTotal === 0) {
     $('#pie-interes').textContent = 'No encontramos intereses ni cargos. O estás al día, o tu extracto los nombra distinto — revisá la tabla.';
@@ -291,12 +323,12 @@ function pintarInteres(r) {
   $('#desglose-interes').innerHTML = r.grupos
     .filter((g) => !g.esPrincipal)
     .slice(0, 6)
-    .map((g) => `<div class="desglose-fila"><span>${escapar(g.etiqueta)}</span><span>${formatoCOP(g.total)}</span></div>`)
+    .map((g) => `<div class="bd-row"><span>${escapar(g.etiqueta)}</span><span>${formatoCOP(g.total)}</span></div>`)
     .join('');
 }
 
 function pintarSubs(r) {
-  $('#cifra-subs').textContent = formatoCOP(r.costoRealTotal);
+  contarHasta($('#cifra-subs'), r.costoRealTotal);
 
   if (!r.comercios.length) {
     $('#pie-subs').textContent = 'No reconocimos ninguna suscripción. Si sabés que tenés, marcalas en la tabla y volvé a analizar.';
@@ -310,8 +342,8 @@ function pintarSubs(r) {
 
   $('#desglose-subs').innerHTML = [
     ...r.comercios.slice(0, 5).map((c) =>
-      `<div class="desglose-fila"><span>${escapar(c.nombre)}</span><span>${formatoCOP(c.costoReal)}</span></div>`),
-    `<div class="desglose-fila fuerte"><span>Proyección a 12 meses</span><span>${formatoCOP(r.anualTotal)}</span></div>`,
+      `<div class="bd-row"><span>${escapar(c.nombre)}</span><span>${formatoCOP(c.costoReal)}</span></div>`),
+    `<div class="bd-row tot"><span>Proyección a 12 meses</span><span>${formatoCOP(r.anualTotal)}</span></div>`,
   ].join('');
 }
 
@@ -326,7 +358,7 @@ function pintarGolpe(interes, subs) {
   el.hidden = false;
   el.innerHTML =
     `Entre intereses y suscripciones se te fueron <strong>${formatoCOP(total)}</strong>` +
-    (eq ? ` — unos ${eq.cantidad} ${eq.nombre} ${eq.emoji}` : '') +
+    (eq ? ` — unos ${eq.cantidad} ${eq.nombre}` : '') +
     `. Si el mes se repite igual, son <strong>${formatoCOP(anual)}</strong> al año.`;
 }
 
@@ -340,13 +372,13 @@ function pintarOculto(r) {
     <tr>
       <td>
         ${escapar(c.nombre)}
-        ${c.recargos.estimado ? '<div class="control-nota">comisión estimada</div>' : '<div class="control-nota">comisión real del extracto</div>'}
+        ${c.recargos.estimado ? '<div class="ctl-note">comisión estimada</div>' : '<div class="ctl-note">comisión real del extracto</div>'}
       </td>
-      <td class="num">${formatoCOP(c.cobrado)}</td>
-      <td class="num">+${formatoCOP(c.recargos.comisionIntl + c.recargos.ivaComision)}</td>
-      <td class="num"><strong>${formatoCOP(c.costoReal)}</strong></td>
-      <td class="num">${formatoCOP(c.recargos.spreadIncluido)}</td>
-      <td class="num">${formatoCOP(c.anual)}</td>
+      <td class="r">${formatoCOP(c.cobrado)}</td>
+      <td class="r">+${formatoCOP(c.recargos.comisionIntl + c.recargos.ivaComision)}</td>
+      <td class="r"><span class="strong">${formatoCOP(c.costoReal)}</span></td>
+      <td class="r">${formatoCOP(c.recargos.spreadIncluido)}</td>
+      <td class="r">${formatoCOP(c.anual)}</td>
     </tr>
   `).join('');
 
@@ -376,24 +408,24 @@ function pintarCategorias(r) {
   bloque.hidden = false;
 
   $('#categorias').innerHTML = r.porCategoria.map((cat) => `
-    <div class="categoria">
-      <div class="categoria-tope">
-        <span class="categoria-emoji">${cat.emoji}</span>
-        <span class="categoria-nombre">${escapar(cat.etiqueta)}</span>
-        <span class="categoria-conteo">${cat.comercios.length}</span>
-        <span class="categoria-total">${formatoCOP(cat.total)}</span>
+    <div class="cat">
+      <div class="cat-hd">
+        <span class="cat-ic">${iconoDe(cat.clave)}</span>
+        <span class="cat-nm">${escapar(cat.etiqueta)}</span>
+        <span class="cat-ct">${cat.comercios.length}</span>
+        <span class="cat-tot">${formatoCOP(cat.total)}</span>
       </div>
-      <div class="categoria-items">
+      <div class="cat-items">
         ${cat.comercios.map((c) => `
           <div class="item">
-            <span class="item-nombre">${escapar(c.nombre)}</span>
-            ${c.enDolares ? '<span class="pastilla pastilla-usd">USD</span>' : ''}
+            <span class="item-nm">${escapar(c.nombre)}</span>
+            ${c.enDolares ? '<span class="pill pill-usd">USD</span>' : ''}
             ${c.recurrenciaConfirmada
-              ? `<span class="pastilla pastilla-neutra">${c.periodo} confirmado</span>`
-              : '<span class="pastilla pastilla-neutra">supuesto mensual</span>'}
-            <span class="item-montos">
+              ? `<span class="pill pill-mute">${c.periodo} confirmado</span>`
+              : '<span class="pill pill-mute">supuesto mensual</span>'}
+            <span class="item-amt">
               <span class="item-real">${formatoCOP(c.costoReal)}</span>
-              <span class="item-anual">${formatoCOP(c.anual)} al año</span>
+              <span class="item-yr">${formatoCOP(c.anual)} al año</span>
             </span>
           </div>
         `).join('')}
@@ -419,12 +451,12 @@ function pintarDeuda(r) {
   $('#tabla-deuda tbody').innerHTML = grupos.map((g) => `
     <tr>
       <td>
-        <span class="pastilla ${g.esInteres ? 'pastilla-interes' : 'pastilla-cargo'}">${escapar(g.etiqueta)}</span>
-        <div class="control-nota">${escapar(g.ayuda || '')}</div>
+        <span class="pill ${g.esInteres ? 'pill-int' : 'pill-fee'}">${escapar(g.etiqueta)}</span>
+        <div class="ctl-note">${escapar(g.ayuda || '')}</div>
       </td>
-      <td class="num">${g.conteo}</td>
-      <td class="num">${formatoCOP(g.total)}</td>
-      <td class="num">${formatoPct(r.costoTotal ? g.total / r.costoTotal : 0, { decimales: 0 })}</td>
+      <td class="r">${g.conteo}</td>
+      <td class="r">${formatoCOP(g.total)}</td>
+      <td class="r">${formatoPct(r.costoTotal ? g.total / r.costoTotal : 0, { decimales: 0 })}</td>
     </tr>
   `).join('');
 }
@@ -475,22 +507,25 @@ function correrSimulacion() {
   pintarUsura(ea, usura);
 
   const salida = $('#sim-salida');
+  const tarjetaChart = $('#chart-card');
   if (!saldo || saldo <= 0 || !Number.isFinite(ea) || ea <= 0) {
     salida.hidden = true;
+    tarjetaChart.hidden = true;
     return;
   }
   salida.hidden = false;
 
   const min = simularMinimo(saldo, ea);
-  if (!min) { salida.hidden = true; return; }
+  if (!min) { salida.hidden = true; tarjetaChart.hidden = true; return; }
 
   if (min.nuncaTermina) {
-    salida.className = 'sim-salida malo';
+    salida.className = 'sim-out bad';
     salida.innerHTML = `
-      <p class="sim-titulo">Pagando el mínimo, esa deuda no se acaba nunca.</p>
-      <p>El interés del mes se come el pago mínimo completo, así que el saldo
+      <p class="sim-t">Pagando el mínimo, esa deuda no se acaba nunca.</p>
+      <p style="color:var(--fog-2)">El interés del mes se come el pago mínimo completo, así que el saldo
       crece en vez de bajar. Esto se llama estar atrapado, y solo se sale
       pagando por encima del mínimo.</p>`;
+    tarjetaChart.hidden = true;
     return;
   }
 
@@ -499,30 +534,49 @@ function correrSimulacion() {
   const plazo = anios ? `${anios} año${anios > 1 ? 's' : ''}${meses ? ` y ${meses} mes${meses > 1 ? 'es' : ''}` : ''}` : `${min.meses} meses`;
 
   let html = `
-    <p class="sim-titulo">Pagando solo el mínimo (5% del saldo):</p>
-    <div class="sim-linea"><span>Tardarías</span><span>${plazo}</span></div>
-    <div class="sim-linea"><span>Pagarías en total</span><span>${formatoCOP(min.totalPagado)}</span></div>
-    <div class="sim-linea"><span>De eso, intereses</span><span>${formatoCOP(min.totalIntereses)}</span></div>
-    <div class="sim-linea"><span>O sea, por cada $100 prestados devolvés</span><span>${formatoCOP(100 * min.totalPagado / saldo, { decimales: 0 })}</span></div>
+    <p class="sim-t">Pagando solo el mínimo (5% del saldo):</p>
+    <div class="sim-row"><span>Tardarías</span><span>${plazo}</span></div>
+    <div class="sim-row"><span>Pagarías en total</span><span>${formatoCOP(min.totalPagado)}</span></div>
+    <div class="sim-row"><span>De eso, intereses</span><span>${formatoCOP(min.totalIntereses)}</span></div>
+    <div class="sim-row"><span>O sea, por cada $100 prestados devolvés</span><span>${formatoCOP(100 * min.totalPagado / saldo, { decimales: 0 })}</span></div>
   `;
 
+  let fijaOK = null;
   if (cuota && cuota > 0) {
     const fija = simularCuotaFija(saldo, ea, cuota);
     if (fija && !fija.nuncaTermina) {
+      fijaOK = fija;
       const ahorro = min.totalIntereses - fija.totalIntereses;
       html += `
-        <hr style="border:none;border-top:1px solid var(--linea);margin:14px 0">
-        <p class="sim-titulo">Pagando ${formatoCOP(cuota)} fijos cada mes:</p>
-        <div class="sim-linea"><span>Tardarías</span><span>${fija.meses} meses</span></div>
-        <div class="sim-linea"><span>Te ahorrarías</span><span>${formatoCOP(ahorro)}</span></div>
-        <div class="sim-linea"><span>Saldrías antes</span><span>${min.meses - fija.meses} meses</span></div>`;
+        <hr class="sim-split">
+        <p class="sim-t">Pagando ${formatoCOP(cuota)} fijos cada mes:</p>
+        <div class="sim-row"><span>Tardarías</span><span>${fija.meses} meses</span></div>
+        <div class="sim-row hi"><span>Te ahorrarías</span><span>${formatoCOP(ahorro)}</span></div>
+        <div class="sim-row hi"><span>Saldrías antes</span><span>${min.meses - fija.meses} meses</span></div>`;
     } else if (fija && fija.nuncaTermina) {
-      html += `<p class="nota">Con ${formatoCOP(cuota)} al mes no alcanzás ni a cubrir el interés. Subí la cuota.</p>`;
+      html += `<p class="note">Con ${formatoCOP(cuota)} al mes no alcanzás ni a cubrir el interés. Subí la cuota.</p>`;
     }
   }
 
-  salida.className = 'sim-salida';
+  salida.className = 'sim-out';
   salida.innerHTML = html;
+
+  dibujarCurva(min, fijaOK, cuota);
+}
+
+// La curva del saldo. Los datos ya existían (simularMinimo devuelve `curva`);
+// lo que faltaba era mostrarlos. Un número dice "8 años"; la curva muestra
+// por qué: los primeros años casi no baja.
+function dibujarCurva(min, fija, cuota) {
+  const tarjeta = $('#chart-card');
+  const r = dibujarAmortizacion($('#chart'), min, fija);
+  if (!r) { tarjeta.hidden = true; return; }
+
+  tarjeta.hidden = false;
+  $('#chart-legend').innerHTML = r.series.length > 1 ? leyenda(r.series) : '';
+  $('#chart-sub').textContent = fija
+    ? `pagando el mínimo tardás ${min.meses} meses; con ${formatoCOP(cuota)} fijos, ${fija.meses}`
+    : `escribí una cuota fija arriba para comparar las dos curvas`;
 }
 
 function pintarUsura(ea, usura) {
@@ -532,9 +586,9 @@ function pintarUsura(ea, usura) {
   el.hidden = false;
 
   if (cmp.excede) {
-    el.className = 'usura-salida excede';
+    el.className = 'usura-out over';
     el.innerHTML = `
-      <p class="sim-titulo">La tasa que escribiste está por encima del techo de usura.</p>
+      <p class="sim-t">La tasa que escribiste está por encima del techo de usura.</p>
       <p>Escribiste ${formatoPct(cmp.ea)} E.A. y la usura del mes que pusiste es ${formatoPct(cmp.usura)}.
       Antes de sacar conclusiones: revisá que ambos números estén bien copiados
       del extracto y de la resolución del mes correcto, y que los dos sean
@@ -545,9 +599,9 @@ function pintarUsura(ea, usura) {
       <a href="https://www.superfinanciera.gov.co/" target="_blank" rel="noopener">Superfinanciera</a>.
       Nosotros no verificamos nada de esto: solo comparamos los dos números que escribiste.</p>`;
   } else {
-    el.className = 'usura-salida ok';
+    el.className = 'usura-out ok';
     el.innerHTML = `
-      <p class="sim-titulo">Tu tasa está dentro de lo legal — que no es lo mismo que barata.</p>
+      <p class="sim-t">Tu tasa está dentro de lo legal — que no es lo mismo que barata.</p>
       <p>Estás en ${formatoPct(cmp.ea)} E.A., o sea al ${formatoPct(cmp.proporcion, { decimales: 0 })}
       del techo de usura (${formatoPct(cmp.usura)}). El banco te puede cobrar
       hasta ahí y sigue siendo legal.</p>`;

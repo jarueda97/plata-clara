@@ -197,7 +197,12 @@ export function filasATransacciones(filas, mapa, { filaEncabezado = 0, invertirS
       valor = parseNumero(f[mapa.valor]);
     }
 
-    if (!fecha || valor == null || valor === 0) { descartadas++; continue; }
+    // Number.isFinite y no `!= null`: rechaza NaN e Infinity además de null.
+    // Hoy parseNumero nunca devuelve NaN, así que `!= null` alcanzaba — pero
+    // eso hacía este guard correcto por accidente, dependiendo de un detalle
+    // de otro módulo. Un NaN que se cuele envenena todos los totales en
+    // silencio: NaN + 1 = NaN, y la tarjeta entera queda en "—" sin decir por qué.
+    if (!fecha || !Number.isFinite(valor) || valor === 0) { descartadas++; continue; }
     if (!descripcion) { descartadas++; continue; }
 
     transacciones.push({

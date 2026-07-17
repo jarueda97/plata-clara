@@ -120,7 +120,8 @@ export function transaccionesDeLineas(lineas, { origen = 'bancolombia-visa' } = 
 
   lineas.forEach((linea, i) => {
     const fila = parsearFila(linea);
-    if (!fila || fila.valor == null || fila.valor === 0) { descartadas++; return; }
+    // isFinite, no `!= null`: un NaN envenena todos los totales en silencio.
+    if (!fila || !Number.isFinite(fila.valor) || fila.valor === 0) { descartadas++; return; }
     transacciones.push({ id: `${origen}:${i}`, origen, crudo: [linea], ...fila });
   });
 

@@ -8,7 +8,7 @@ import { detectarDelimitador, parsearCSV, detectarEncabezados, filasATransaccion
 import { clasificarCargo, analizarInteres, estimarEA, eaAMensual } from '../src/motor/interes.js';
 import { identificarComercio, analizarSuscripciones, calcularRecargos, mediana } from '../src/motor/suscripciones.js';
 import { simularMinimo, simularCuotaFija, equivalencia } from '../src/motor/minimo.js';
-import { parsearFila, esBancolombiaVisa, tasaEADelExtracto, periodoDelExtracto } from '../src/parse/bancolombia-visa.js';
+import { parsearFila, esBancolombiaVisa, tasaEADelExtracto, periodoDelExtracto, transaccionesDeLineas } from '../src/parse/bancolombia-visa.js';
 import { analizarDiferidos, interesPorPagar, claveComercio } from '../src/motor/diferidos.js';
 
 // --- Números --------------------------------------------------------------
@@ -695,4 +695,34 @@ test('bancolombia: periodo que cruza de año', () => {
 
 test('bancolombia: sin encabezado de periodo devuelve null', () => {
   assert.equal(periodoDelExtracto(['845423 09/06/2026 SUSCRIPCION EJEMPLO $ 3.600.000,00 1/36 $ 100.000,00 2,1285 % 28,7548 % $ 3.500.000,00']), null);
+});
+
+test('ningún NaN se cuela a los totales', () => {
+  // Un NaN envenena todo en silencio (NaN + 1 = NaN) y deja la tarjeta en "—"
+  // sin explicar por qué. El guard debe ser explícito, no depender de que
+  // parseNumero casualmente devuelva null en vez de NaN.
+  const csv = `Fecha;Descripcion;Valor
+15/01/2026;INTERESES CORRIENTES;abc
+16/01/2026;CUOTA DE MANEJO;$19.900
+17/01/2026;NETFLIX;n/a`;
+  const { filas } = parsearCSV(csv);
+  const enc = detectarEncabezados(filas);
+  const { transacciones, descartadas } = filasATransacciones(filas, enc.mapa, { filaEncabezado: enc.fila });
+
+  assert.equal(transacciones.length, 1, 'solo la fila con monto legible');
+  assert.equal(descartadas, 2, 'las dos basuras se descartan');
+  assert.ok(transacciones.every((t) => Number.isFinite(t.valor)), 'ni un valor no finito');
+
+  const r = analizarInteres(transacciones);
+  assert.ok(Number.isFinite(r.costoTotal), 'el total sobrevive');
+  assert.equal(r.costoTotal, 19900);
+});
+
+test('bancolombia: una fila con monto ilegible se descarta, no se vuelve NaN', () => {
+  const { transacciones, descartadas } = transaccionesDeLineas([
+    '845423 09/06/2026 BUENA $ 3.600.000,00 1/36 $ 100.000,00 2,1285 % 28,7548 % $ 3.500.000,00',
+    '845424 09/06/2026 BASURA $ ---,-- $ ---,-- $ ---,--',
+  ]);
+  assert.equal(transacciones.length, 1);
+  assert.ok(transacciones.every((t) => Number.isFinite(t.valor)));
 });

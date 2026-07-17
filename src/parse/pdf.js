@@ -8,15 +8,25 @@
 // "FECHA  DESCRIPCION  $VALOR". No es perfecto y no pretende serlo: por eso
 // la interfaz SIEMPRE muestra la tabla para que tú confirmes antes de sumar.
 //
-// El PDF nunca sale de tu navegador. pdf.js se carga desde un CDN la primera
-// vez; después queda en caché y la app funciona sin internet.
+// El PDF nunca sale de tu navegador, y pdf.js tampoco viene de afuera.
+//
+// Estuvo en un CDN y lo trajimos al repo por la misma razón que las fuentes:
+// pedirle la librería a un tercero le cuenta a ese tercero tu IP y de dónde
+// vienes. Y acá era peor que con las fuentes — estas las carga cualquier
+// curioso que abra la página, pero pdf.js solo se descarga cuando de verdad
+// subes un extracto. O sea que la señal era precisa: "esta IP acaba de subir
+// un extracto bancario". Son 1,3 MB, y solo se cargan si abres un PDF.
+//
+// Resultado: cero peticiones a otro dominio, con CSV o con PDF.
 
 import { parseNumero } from './numero.js';
 import { parseFecha } from './fecha.js';
 import { esBancolombiaVisa, transaccionesDeLineas } from './bancolombia-visa.js';
 
-const PDFJS_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs';
-const PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
+// Rutas relativas a este módulo, para que funcione igual en local, en
+// GitHub Pages bajo /plata-clara/, o donde sea que lo alojes.
+const PDFJS_URL = new URL('../../vendor/pdf.min.mjs', import.meta.url).href;
+const PDFJS_WORKER = new URL('../../vendor/pdf.worker.min.mjs', import.meta.url).href;
 
 let pdfjsPromesa = null;
 

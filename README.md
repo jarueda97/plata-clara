@@ -62,14 +62,16 @@ Verifícalo tú mismo:
 
 O más fácil: desconecta el wifi y usalo igual. Funciona.
 
-**Cero terceros.** Las fuentes están servidas desde el propio repo, no desde
-Google. No es purismo: pedirle las fuentes a Google le cuenta a Google tu IP y
-que estás usando una herramienta para auditar a tu banco. Un proyecto que se
-para en "tu extracto no sale de tu navegador" no puede filtrar eso de una.
+**Cero terceros. Literalmente cero.** Las fuentes y `pdf.js` están servidos
+desde el propio repo. No es purismo: pedirle las fuentes a Google, o la librería
+a un CDN, le cuenta a ese tercero tu IP y de dónde vienes. Con `pdf.js` era peor
+que con las fuentes — estas las carga cualquiera que abra la página, pero
+`pdf.js` solo se descarga cuando de verdad subes un extracto, así que la señal
+era precisa: "esta IP acaba de subir un extracto bancario".
 
-> La única petición externa que existe es la de `pdf.js` desde un CDN, y solo si
-> abres un PDF. Después queda en caché. Si eso te molesta, usa CSV y no sale ni
-> una — literalmente cero peticiones a otro dominio.
+> Abre la pestaña Red y cuenta: **ninguna petición sale de este dominio**, ni con
+> CSV ni con PDF. Un proyecto que se para en "tu extracto no sale de tu
+> navegador" no puede permitirse la excepción.
 
 ## Correlo local
 

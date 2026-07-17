@@ -90,10 +90,23 @@ export function analizarSuscripciones(transacciones, {
   comisionesFX = [],
   tarifas = TARIFAS,
   esCuentaDebito = false,
+  gmfEnExtracto = false,
 } = {}) {
+  // Si el extracto ya trae su propia línea de 4x1000, el motor de intereses la
+  // está contando como plata real. Estimarlo otra vez acá sería el mismo peso
+  // en las dos tarjetas — exactamente el bug que `comisionesFX` evita para la
+  // comisión internacional. El GMF tiene la misma forma y necesita la misma cura.
+  const estimarGMF = esCuentaDebito && !gmfEnExtracto;
+  // Si el extracto declaró sus comisiones internacionales, ya nos dijo cuáles
+  // compras las causaron. Una compra en dólares SIN línea emparejada no tuvo
+  // comisión — Adobe y Microsoft facturan en COP desde Colombia, por ejemplo.
+  // Estimarle un 3% ahí inventa pesos que nunca salieron de la cuenta.
+  const hayDatosFX = comisionesFX.length > 0;
   const porComercio = new Map();
 
   for (const t of transacciones) {
+    // `excluidos` = el usuario destildó "Contar". Sale de las DOS tarjetas a
+    // propósito: pidió que lo ignoremos, no que lo reclasifiquemos.
     if (excluidos.has(t.id)) continue;
     if (t.valor <= 0) continue;               // abonos no
     if (clasificarCargo(t.descripcion)) continue; // los cargos del banco los cuenta el otro motor
@@ -146,7 +159,7 @@ export function analizarSuscripciones(transacciones, {
       ? comisionesPropias.reduce((a, b) => a + b, 0)
       : null;
 
-    const recargos = calcularRecargos(cobrado, { enDolares, comisionReal, esCuentaDebito, tarifas });
+    const recargos = calcularRecargos(cobrado, { enDolares, comisionReal, esCuentaDebito: estimarGMF, tarifas, hayDatosFX });
 
     // Periodo: si lo confirmamos por repetición, usamos eso. Si no, asumimos
     // mensual (que es lo típico) pero lo marcamos como supuesto.
@@ -157,7 +170,7 @@ export function analizarSuscripciones(transacciones, {
     const cobroTipico = mediana(g.items.map((t) => t.valor));
     const comisionTipica = comisionesPropias.length ? mediana(comisionesPropias) : null;
     const recargosTipicos = calcularRecargos(cobroTipico, {
-      enDolares, comisionReal: comisionTipica, esCuentaDebito, tarifas,
+      enDolares, comisionReal: comisionTipica, esCuentaDebito: estimarGMF, tarifas, hayDatosFX,
     });
     const anual = (cobroTipico + recargosTipicos.total) * (VECES_AL_ANIO[periodo] ?? 12);
 
@@ -179,7 +192,13 @@ export function analizarSuscripciones(transacciones, {
   comercios.sort((a, b) => b.costoReal - a.costoReal);
 
   const cobradoTotal = comercios.reduce((a, c) => a + c.cobrado, 0);
-  const recargosTotal = comercios.reduce((a, c) => a + c.recargos.total, 0);
+  // Las comisiones que no le pudimos amarrar a ninguna suscripción son de
+  // compras internacionales sueltas. Son plata REAL que salió de la cuenta, y
+  // como `separarFX` ya las sacó de la tarjeta de deuda, si no las sumamos acá
+  // no quedan en ninguna de las dos y la invariante se rompe.
+  const comisionesSinAtribuirTotal = sinAtribuir.reduce((a, c) => a + c.valor, 0);
+  const recargosTotal = comercios.reduce((a, c) => a + c.recargos.total, 0)
+    + comisionesSinAtribuirTotal;
 
   return {
     comercios,
@@ -194,8 +213,11 @@ export function analizarSuscripciones(transacciones, {
     enDolares: comercios.filter((c) => c.enDolares),
     sinConfirmar: comercios.filter((c) => !c.recurrenciaConfirmada),
     // Comisiones internacionales que no pudimos amarrar a ninguna suscripción
-    // (seguro son de compras sueltas). Quedan aquí para no desaparecerlas.
+    // (seguro son de compras sueltas). Van listadas Y sumadas en recargosTotal.
+    // Listarlas sin sumarlas era peor que no mencionarlas: parecía que estaban
+    // contadas y se caían del total.
     comisionesSinAtribuir: sinAtribuir,
+    comisionesSinAtribuirTotal,
   };
 }
 
@@ -219,6 +241,7 @@ export function calcularRecargos(montoCOP, {
   comisionReal = null,
   esCuentaDebito,
   tarifas = TARIFAS,
+  hayDatosFX = false,
 }) {
   if (!montoCOP || montoCOP <= 0) return vacio();
 
@@ -231,7 +254,10 @@ export function calcularRecargos(montoCOP, {
       // Del extracto. Su IVA ya viene en la línea de IVA del banco, que el
       // motor de intereses cuenta: no lo sumamos otra vez.
       comisionIntl = comisionReal;
-    } else {
+    } else if (!hayDatosFX) {
+      // Solo estimamos cuando el extracto no dijo nada de comisiones. Si sí
+      // las declaró y esta compra no tiene una, es que no la tuvo — no que se
+      // nos perdió. Inventarle un 3% contradice todo el punto del proyecto.
       comisionIntl = montoCOP * tarifas.comisionInternacional;
       ivaComision = comisionIntl * tarifas.iva;
       estimado = true;

@@ -77,7 +77,15 @@ export async function textoDePDF(arrayBuffer) {
 
 // Una línea de movimiento arranca con una fecha y termina con un monto.
 const RE_FECHA_INICIO = /^(\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?|\d{1,2}\s+[A-Za-zÁÉÍÓÚáéíóú]{3,10}\.?\s*\d{0,4})\s+(.*)$/;
-const RE_MONTO = /(-?\$?\s?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?)\s*(CR)?$/;
+// Dos ramas a propósito: con separadores de miles ("1.234.567,89", "45.000") o
+// un entero pelado ("26900"). Sin la segunda rama, `\d{1,3}(?:[.,]\d{3})*` no
+// podía cubrir un entero de 4+ dígitos desde el inicio, así que el motor
+// avanzaba hasta enganchar solo los últimos tres: "26900" salía 900. Y peor,
+// cuando esos tres eran "000" — o sea casi todos los montos colombianos
+// (45.000, 120.000) — parseNumero daba 0 y la línea
+// se descartaba en silencio: el movimiento desaparecía del total sin rastro.
+// El (?:^|\s) evita que enganche a mitad de un número.
+const RE_MONTO = /(?:^|\s)(-?\$?\s?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d{1,2})?)\s*(CR)?$/;
 
 /**
  * Convierte las líneas de texto en transacciones.

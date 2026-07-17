@@ -18,15 +18,34 @@ export function parseNumero(bruto) {
   let s = String(bruto).trim();
   if (!s) return null;
 
-  // Negativos: signo menos, o paréntesis contables "(1.500)".
-  const enParentesis = /^\(.*\)$/.test(s);
-  const conMenos = /-/.test(s);
-  const marcaCredito = /\bCR\b/i.test(s); // algunos extractos marcan abonos con CR
-  const negativo = enParentesis || conMenos || marcaCredito;
+  // "CR" marca abono en algunos extractos. Quitamos tildes primero: sin eso,
+  // la É de "CRÉDITO" contaba como frontera de palabra y \bCR\b matcheaba,
+  // volviendo negativo un cargo que decía "CREDITO".
+  const plano = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  const marcaCredito = /\bCR\b/.test(plano);
 
-  // Fuera todo lo que no sea dígito o separador.
-  s = s.replace(/[^\d.,]/g, '');
-  if (!s || !/\d/.test(s)) return null;
+  // Fuera moneda, marcas y espacios. Lo que quede TIENE que ser el número.
+  s = s.replace(/\bCOP\b|\bUSD\b|\bCR\b|\$/gi, '').replace(/\s/g, '');
+
+  // Paréntesis contables. Antes se exigía que fueran el primer y último
+  // carácter de la celda, así que "$(1.500)" y "(45.000) COP" perdían el signo.
+  const enParentesis = /^\(.*\)$/.test(s);
+  s = s.replace(/[()]/g, '');
+
+  // El menos solo cuenta pegado al número, adelante o atrás. Antes se buscaba
+  // en TODA la celda cruda: "NETFLIX-SUSCRIP 26.900" salía -26.900, o sea un
+  // gasto convertido en abono por un guion del texto.
+  const menosAdelante = s.startsWith('-');
+  const menosAtras = s.endsWith('-');
+  s = s.replace(/^-|-$/g, '');
+
+  // Lo que sobra debe ser SOLO dígitos y separadores. Si queda cualquier otra
+  // cosa, la celda no es un monto y devolvemos null en vez de adivinar: antes
+  // se concatenaban todos los dígitos y "15-01 1.500" salía -15.011.500, un
+  // número que no existe en ninguna parte.
+  if (!/^[\d.,]+$/.test(s) || !/\d/.test(s)) return null;
+
+  const negativo = enParentesis || menosAdelante || menosAtras || marcaCredito;
 
   const ultimaComa = s.lastIndexOf(',');
   const ultimoPunto = s.lastIndexOf('.');

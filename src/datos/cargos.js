@@ -110,6 +110,7 @@ export const CARGOS = [
     clave: 'gmf',
     etiqueta: '4x1000 (GMF)',
     esCargo: true,
+    esGMF: true, // si el extracto lo trae, no lo estimamos otra vez (ver separarGMF)
     ayuda: 'El impuesto a los movimientos financieros: $4 por cada $1.000 que sacas.',
     patrones: [
       'GRAVAMEN A LOS MOVIMIENTOS FINANCIEROS', 'GRAVAMEN MOVIMIENTOS FINANCIEROS',

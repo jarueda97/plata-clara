@@ -67,11 +67,17 @@ export function compararConCuotaFija(saldo, ea, cuota, opciones = {}) {
   const fija = simularCuotaFija(saldo, ea, cuota, opciones);
   if (!min || !fija) return null;
 
+  // Las DOS simulaciones tienen que terminar para que "ahorro" signifique algo.
+  // Si la cuota fija no cubre ni el interés, simularCuotaFija sale en el mes 1
+  // con totalIntereses = 0 — y restar contra eso decía "te ahorras $6.871.045"
+  // sobre un plan de pago que nunca salda la deuda y la deja creciendo.
+  // La línea de abajo sí guardaba fija.nuncaTermina; esta no. Era un olvido.
+  const ningunaTermina = min.nuncaTermina || fija.nuncaTermina;
   return {
     minimo: min,
     fija,
-    ahorro: min.nuncaTermina ? null : min.totalIntereses - fija.totalIntereses,
-    mesesMenos: min.nuncaTermina || fija.nuncaTermina ? null : min.meses - fija.meses,
+    ahorro: ningunaTermina ? null : min.totalIntereses - fija.totalIntereses,
+    mesesMenos: ningunaTermina ? null : min.meses - fija.meses,
   };
 }
 

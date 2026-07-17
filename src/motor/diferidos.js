@@ -34,7 +34,11 @@ export function analizarDiferidos(transacciones, { interesDelMes = 0 } = {}) {
     : null;
 
   const items = diferidas.map((t) => {
-    const restantes = Math.max((t.cuotas.total - t.cuotas.n) + 1, 0);
+    // El saldo del extracto YA viene neto de la cuota de este mes: la fila de
+    // ejemplo del parser lo prueba (3.600.000 - 100.000 = 3.500.000). O sea que
+    // si vas en la cuota 1 de 36, te faltan 35 pagos, no 36.
+    // La regla que lo ancla: restantes * valorCuota === saldoPendiente.
+    const restantes = Math.max(t.cuotas.total - t.cuotas.n, 0);
     const comercio = identificarComercio(t.descripcion);
     return {
       id: t.id,
@@ -50,8 +54,9 @@ export function analizarDiferidos(transacciones, { interesDelMes = 0 } = {}) {
       cuotaTotal: t.cuotas.total,
       restantes,
       tasaEA: t.tasaEA,
-      // Cuándo se acaba de pagar esto.
-      terminaEn: mesesAdelante(t.fecha, restantes),
+      // Cuándo se acaba de pagar esto: la última cuota cae (total - 1) meses
+      // después de la compra, porque la cuota 1 se cobra el mismo mes.
+      terminaEn: mesesAdelante(t.fecha, t.cuotas.total - 1),
     };
   }).sort((a, b) => b.saldoPendiente - a.saldoPendiente);
 
@@ -138,7 +143,12 @@ function agruparApiladas(items) {
     // Agrupamos por clave normalizada, no por el texto crudo: el mismo comercio
     // sale escrito distinto de un mes a otro ("ACME" y "ACME INC"), y
     // partirlo en dos subestima el apilamiento, que es justo lo que queremos medir.
-    const clave = claveComercio(i.nombre);
+    //
+    // El `|| i.nombre`: si la limpieza se come el nombre entero ("APP 845423"
+    // pierde el número y el sufijo y queda en ''), dos comercios sin relación
+    // caerían en la misma clave vacía y reportaríamos un apilamiento falso.
+    // Mejor no agrupar que inventar que algo se apila.
+    const clave = claveComercio(i.nombre) || i.nombre;
     if (!mapa.has(clave)) {
       mapa.set(clave, {
         nombre: i.nombre,

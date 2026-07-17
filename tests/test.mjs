@@ -1,4 +1,5 @@
 import test from 'node:test';
+import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
 import { parseNumero, parseTasa } from '../src/parse/numero.js';
@@ -7,9 +8,10 @@ import { contienePatron, normalizarDescripcion } from '../src/parse/normalizar.j
 import { detectarDelimitador, parsearCSV, detectarEncabezados, filasATransacciones, sugiereInvertirSigno } from '../src/parse/csv.js';
 import { clasificarCargo, analizarInteres, estimarEA, eaAMensual } from '../src/motor/interes.js';
 import { identificarComercio, analizarSuscripciones, calcularRecargos, mediana } from '../src/motor/suscripciones.js';
-import { simularMinimo, simularCuotaFija, equivalencia } from '../src/motor/minimo.js';
+import { simularMinimo, simularCuotaFija, equivalencia, compararConCuotaFija } from '../src/motor/minimo.js';
 import { parsearFila, esBancolombiaVisa, tasaEADelExtracto, periodoDelExtracto, transaccionesDeLineas } from '../src/parse/bancolombia-visa.js';
 import { analizarDiferidos, interesPorPagar, claveComercio } from '../src/motor/diferidos.js';
+import { lineasATransacciones } from '../src/parse/pdf.js';
 
 // --- Números --------------------------------------------------------------
 
@@ -594,7 +596,11 @@ test('diferidos: separa la compra de la cuota y del saldo', () => {
   assert.equal(d.comprado, 3600000);
   assert.equal(d.cuotaMensual, 100000);
   assert.equal(d.saldoPendiente, 3500000);
-  assert.equal(d.items[0].restantes, 36);
+  // 35, no 36: el saldo del extracto ya viene neto de la cuota de este mes
+  // (3.600.000 - 100.000 = 3.500.000). La regla que lo ancla:
+  assert.equal(d.items[0].restantes, 35);
+  assert.equal(d.items[0].restantes * d.items[0].valorCuota, d.items[0].saldoPendiente,
+    'restantes * cuota debe dar exactamente el saldo pendiente');
   assert.equal(d.items[0].esSuscripcion, false, 'un comercio desconocido no es suscripción');
   // El interés real del extracto manda sobre cualquier cuenta nuestra.
   assert.equal(d.costoMensualDelSaldo, 150000);
@@ -609,7 +615,7 @@ test('diferidos: reconoce suscripciones financiadas', () => {
   const d = analizarDiferidos(tx);
   assert.equal(d.suscripcionesDiferidas.length, 1);
   assert.equal(d.suscripcionesDiferidas[0].nombre, 'ChatGPT (OpenAI)');
-  assert.equal(d.suscripcionesDiferidas[0].restantes, 36);
+  assert.equal(d.suscripcionesDiferidas[0].restantes, 35);
 });
 
 test('diferidos: sin cuotas no hay bloque', () => {
@@ -725,4 +731,209 @@ test('bancolombia: una fila con monto ilegible se descarta, no se vuelve NaN', (
   ]);
   assert.equal(transacciones.length, 1);
   assert.ok(transacciones.every((t) => Number.isFinite(t.valor)));
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// LA INVARIANTE, COMO PROPIEDAD
+// ──────────────────────────────────────────────────────────────────────────
+// Los tests de arriba prueban CASOS. Este prueba la REGLA: para cualquier
+// conjunto de transacciones, la plata que salió tiene que aparecer completa y
+// una sola vez. Cuatro bugs reales vivían debajo de 74 tests verdes porque
+// ninguno afirmaba esto en general.
+// ══════════════════════════════════════════════════════════════════════════
+
+function bucketsCuadran(tx, opciones = {}) {
+  const interes = analizarInteres(tx, { separarFX: true, ...opciones });
+  const subs = analizarSuscripciones(tx, { comisionesFX: interes.cargosFX, ...opciones });
+
+  const salidas = tx.filter((t) => t.valor > 0);
+  const total = salidas.reduce((a, t) => a + t.valor, 0);
+
+  const contados = new Set([
+    ...interes.detalle.map((d) => d.id),
+    ...subs.comercios.flatMap((c) => c.items.map((i) => i.id)),
+  ]);
+  const normales = salidas.filter((t) => !contados.has(t.id)).reduce((a, t) => a + t.valor, 0);
+
+  const suma = interes.costoTotal + subs.cobradoTotal + subs.recargosTotal
+    + interes.totalAvances + normales;
+  return { suma, total, dif: suma - total, interes, subs };
+}
+
+test('INVARIANTE: la comisión FX sin atribuir no se cae del total', () => {
+  // Una comisión de una compra suelta (no de suscripción): separarFX la saca de
+  // la deuda y la atribución no la engancha. Estaba quedando en el limbo.
+  const tx = [
+    { id: '1', valor: 5000, descripcion: 'COMISION TRANSACCION INTERNACIONAL', fecha: new Date(2026, 5, 9) },
+    { id: '2', valor: 26900, descripcion: 'NETFLIX.COM', fecha: new Date(2026, 0, 15) },
+  ];
+  const r = bucketsCuadran(tx);
+  assert.equal(Math.round(r.dif), 0, `se perdieron ${-r.dif} pesos`);
+  assert.equal(r.subs.comisionesSinAtribuirTotal, 5000, 'listada Y sumada');
+});
+
+test('INVARIANTE: el 4x1000 del extracto no se cuenta dos veces', () => {
+  // El GMF tiene la misma forma que la comisión FX: línea real + estimación.
+  const tx = [
+    { id: '1', valor: 26900, descripcion: 'NETFLIX.COM', fecha: new Date(2026, 0, 5) },
+    { id: '2', valor: 108, descripcion: 'GRAVAMEN A LOS MOVIMIENTOS FINANCIEROS', fecha: new Date(2026, 0, 5) },
+  ];
+  const interes = analizarInteres(tx);
+  const subs = analizarSuscripciones(tx, { esCuentaDebito: true, gmfEnExtracto: true });
+  const suma = interes.costoTotal + subs.costoRealTotal;
+  assert.ok(Math.abs(suma - 27008) < 0.5, `inflado en ${(suma - 27008).toFixed(1)}`);
+});
+
+test('INVARIANTE: sin línea de GMF sí lo estimamos', () => {
+  const tx = [{ id: '1', valor: 100000, descripcion: 'NETFLIX.COM', fecha: new Date(2026, 0, 5) }];
+  const subs = analizarSuscripciones(tx, { esCuentaDebito: true, gmfEnExtracto: false });
+  assert.equal(Math.round(subs.comercios[0].recargos.gmf), 400);
+});
+
+test('INVARIANTE: no inventamos comisión si el extracto ya declaró las suyas', () => {
+  // Adobe factura en COP desde Colombia: no tiene comisión. Si el extracto trae
+  // comisiones y ninguna es de Adobe, es que no la tuvo — no que se nos perdió.
+  const tx = [
+    { id: '1', valor: 88400, descripcion: 'OPENAI CHATGPT COMPRA INTERNACIONAL', fecha: new Date(2026, 0, 5) },
+    { id: '2', valor: 100000, descripcion: 'ADOBE', fecha: new Date(2026, 0, 20) },
+    { id: '3', valor: 2652, descripcion: 'COMISION TRANSACCION INTERNACIONAL', fecha: new Date(2026, 0, 5) },
+  ];
+  const r = bucketsCuadran(tx);
+  assert.equal(Math.round(r.dif), 0, `se inventaron ${r.dif} pesos`);
+  const adobe = r.subs.comercios.find((c) => c.nombre === 'Adobe');
+  assert.equal(adobe.recargos.total, 0, 'Adobe no tuvo comisión, no le inventamos una');
+});
+
+test('INVARIANTE: el ejemplo completo cuadra al peso', () => {
+  const { filas } = parsearCSV(fs.readFileSync('ejemplos/ejemplo-extracto.csv', 'utf8'));
+  const enc = detectarEncabezados(filas);
+  const { transacciones } = filasATransacciones(filas, enc.mapa, { filaEncabezado: enc.fila });
+  const r = bucketsCuadran(transacciones);
+  assert.equal(Math.round(r.dif), 0, `descuadre de ${r.dif}`);
+});
+
+test('diferidos: restantes * cuota siempre da el saldo pendiente', () => {
+  // La regla que atrapa el off-by-one. Antes restantes era (total - n) + 1, y
+  // eso dejaba una cuota fantasma de capital: 36 * 100.000 = 3.600.000 contra
+  // un saldo real de 3.500.000. Con diferidos de distinta antigüedad, ese pago
+  // fantasma borraba saldo antes de tiempo y SUBESTIMABA el interés proyectado.
+  const mk = (n, total, compra) => ({
+    id: `x${n}`, descripcion: 'COMERCIO', fecha: new Date(2026, 5, 1),
+    valorMovimiento: compra, valorCuota: compra / total,
+    saldoPendiente: compra - (compra / total) * n,
+    valor: compra / total, cuotas: { n, total }, tasaEA: 0.28,
+  });
+  const d = analizarDiferidos([mk(1, 36, 3600000), mk(12, 36, 1800000), mk(35, 36, 720000)]);
+  for (const i of d.items) {
+    assert.ok(Math.abs(i.restantes * i.valorCuota - i.saldoPendiente) < 0.01,
+      `${i.cuotaN}/${i.cuotaTotal}: ${i.restantes} * ${i.valorCuota} != ${i.saldoPendiente}`);
+  }
+});
+
+test('minimo: no reporta ahorro con una cuota que nunca salda', () => {
+  // Le decía a alguien que un plan que lo arruina le ahorra $6.871.045.
+  const c = compararConCuotaFija(10000000, 0.28, 100000);
+  assert.equal(c.fija.nuncaTermina, true, 'esa cuota no cubre ni el interés');
+  assert.equal(c.ahorro, null, 'no hay ahorro que reportar');
+  assert.equal(c.mesesMenos, null);
+
+  // Y con una cuota que sí salda, el ahorro sí sale.
+  const b = compararConCuotaFija(5000000, 0.28, 500000);
+  assert.ok(b.ahorro > 0);
+  assert.ok(b.mesesMenos > 0);
+});
+
+test('tasaEA: una fila al 0% pesa en el promedio, no se ignora', () => {
+  const ea = tasaEADelExtracto([
+    { tasaEA: 0, saldoPendiente: 10000000 },        // diferido promocional
+    { tasaEA: 0.287548, saldoPendiente: 1000000 },
+  ]);
+  assert.ok(Math.abs(ea - 0.02614) < 0.001, `dio ${(ea * 100).toFixed(2)}%, esperado 2,61%`);
+});
+
+test('bancolombia: no confunde un extracto genérico con uno diferido', () => {
+  // El fallback 'filas >= 8' reintroducía el bug original: un extracto de
+  // (fecha, desc, valor, saldo) se detectaba como Bancolombia y `valor` pasaba
+  // a ser el SALDO. 10 filas con centavos, que es lo que el test viejo no tenía.
+  const generico = Array.from({ length: 10 }, (_, i) =>
+    `0${i + 1}/01/2026 COMERCIO ${i} $ 26.900,00 $ 1.234.567,89`);
+  assert.equal(esBancolombiaVisa(generico), false, 'sin cuotas ni tasas no es este formato');
+});
+
+test('bancolombia: un abono con el menos antes del peso es negativo', () => {
+  const f = parsearFila('15/06/2026 PAGO RECIBIDO -$ 500.000,00 -$ 500.000,00 $ 0,00');
+  assert.ok(f.valor < 0, `dio ${f.valor}: un pago contado como gasto`);
+  assert.equal(f.valor, -500000);
+});
+
+test('bancolombia: un "$" en la descripción no corre los montos', () => {
+  // Los montos de la tabla son los ÚLTIMOS tres, no los primeros.
+  const f = parsearFila('845423 09/06/2026 COMPRA USD $ 9,99 MERCADO $ 3.600.000,00 1/36 $ 100.000,00 2,1285 % 28,7548 % $ 3.500.000,00');
+  assert.equal(f.valorMovimiento, 3600000);
+  assert.equal(f.valor, 100000, 'la cuota, no el valor movimiento');
+  assert.equal(f.saldoPendiente, 3500000);
+});
+
+test('pdf genérico: un monto sin separador de miles no se trunca', () => {
+  // '26900' salía 900, y '45000' desaparecía entero (los últimos 3 son '000',
+  // parseNumero da 0 y la fila se descarta en silencio).
+  const { transacciones } = lineasATransacciones([
+    '15/01/2026 NETFLIX 26900',
+    '16/01/2026 ARRIENDO 45000',
+    '17/01/2026 MERCADO $ 1.234.567,89',
+  ]);
+  assert.equal(transacciones.length, 3, 'ninguna se pierde');
+  assert.deepEqual(transacciones.map((t) => t.valor), [26900, 45000, 1234567.89]);
+});
+
+test('csv: "Valor movimiento" no se lo roba la columna descripción', () => {
+  // 'movimiento' es sinónimo de descripcion y hacía match PARCIAL contra
+  // "Valor movimiento", quedándose con la columna antes de que `valor` pudiera
+  // matchearla EXACTO. valor quedaba en null, cada fila se descartaba por no
+  // tener monto, y el extracto salía vacío sin un solo error. Y "Valor
+  // movimiento" es literalmente el nombre de la columna en Bancolombia.
+  const { filas } = parsearCSV(
+    'Fecha;Descripcion;Valor movimiento;Saldo\n15/01/2026;NETFLIX.COM;26.900;1.000.000');
+  const enc = detectarEncabezados(filas);
+  assert.equal(enc.mapa.descripcion, 1, 'descripcion se queda con la suya');
+  assert.equal(enc.mapa.valor, 2, 'y valor gana la suya por match exacto');
+  const { transacciones } = filasATransacciones(filas, enc.mapa, { filaEncabezado: enc.fila });
+  assert.equal(transacciones.length, 1);
+  assert.equal(transacciones[0].valor, 26900);
+});
+
+test('csv: "Clase de movimiento" tampoco confunde el mapeo', () => {
+  // El otro encabezado que colisiona entre categorías.
+  const { filas } = parsearCSV(
+    'Fecha;Clase de movimiento;Valor;Saldo\n15/01/2026;COMPRA NETFLIX;26.900;1.000.000');
+  const enc = detectarEncabezados(filas);
+  assert.equal(enc.mapa.valor, 2);
+  const { transacciones } = filasATransacciones(filas, enc.mapa, { filaEncabezado: enc.fila });
+  assert.equal(transacciones[0].valor, 26900);
+});
+
+test('parseNumero: un guion en el texto no vuelve negativo un cargo', () => {
+  // '-' se buscaba en TODA la celda cruda.
+  assert.equal(parseNumero('NETFLIX-SUSCRIP 26.900'), null, 'celda con texto: null, no adivinar');
+  assert.equal(parseNumero('15-01 1.500'), null, 'antes daba -15.011.500, un número inexistente');
+  // Paréntesis contables, con moneda pegada.
+  assert.equal(parseNumero('$(1.500)'), -1500);
+  assert.equal(parseNumero('(45.000,00) COP'), -45000);
+  assert.equal(parseNumero('1.500-'), -1500);
+  // Y lo normal sigue igual.
+  assert.equal(parseNumero('45.000'), 45000);
+  assert.equal(parseNumero('50.000 CR'), -50000);
+});
+
+test('claveComercio: si la limpieza vacía el nombre, no agrupa a ciegas', () => {
+  // 'APP 845423' pierde el número y el sufijo y queda en ''. Dos comercios sin
+  // relación caían en la misma clave vacía y se reportaba apilamiento falso.
+  const mk = (desc) => ({
+    id: desc, descripcion: desc, fecha: new Date(2026, 5, 1), valor: 100,
+    valorMovimiento: 3600, valorCuota: 100, saldoPendiente: 3500,
+    cuotas: { n: 1, total: 36 }, tasaEA: 0.28,
+  });
+  const d = analizarDiferidos([mk('APP 845423'), mk('CO 998877')]);
+  assert.equal(d.apiladas.length, 2, 'dos comercios distintos, no uno apilado');
+  assert.equal(d.seApilan.length, 0);
 });

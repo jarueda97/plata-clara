@@ -149,18 +149,37 @@ export function detectarEncabezados(filas, { maxFilas = 20 } = {}) {
   return mejor ? { fila: mejor.fila, mapa: mejor.mapa } : null;
 }
 
-/** Mapea índices de columna -> nombre canónico. */
+/**
+ * Mapea índices de columna -> nombre canónico.
+ *
+ * DOS PASADAS, y el orden importa: primero todos los matches EXACTOS, después
+ * los parciales. En una sola pasada, un match parcial de una columna se robaba
+ * la que otra matcheaba exacto — "descripcion" tiene "movimiento" de sinónimo y
+ * se quedaba con la columna "Valor movimiento", dejando `valor` en null.
+ * Resultado: cada fila se descartaba por no tener monto y el extracto salía
+ * vacío, sin un solo error. Y "Valor movimiento" es literalmente el nombre de
+ * la columna en el extracto de Bancolombia.
+ */
 export function mapearColumnas(encabezados) {
   const norm = encabezados.map((h) => normalizar(h));
   const mapa = {};
   const usadas = new Set();
+  const canonicos = Object.entries(SINONIMOS);
 
-  for (const [canonico, sinonimos] of Object.entries(SINONIMOS)) {
+  // Pasada 1: solo coincidencias exactas. Nadie se roba nada.
+  for (const [canonico, sinonimos] of canonicos) {
     for (const sin of sinonimos) {
       const idx = norm.findIndex((h, i) => !usadas.has(i) && h === sin);
       if (idx > -1) { mapa[canonico] = idx; usadas.add(idx); break; }
-      const idxParcial = norm.findIndex((h, i) => !usadas.has(i) && h.includes(sin));
-      if (idxParcial > -1) { mapa[canonico] = idxParcial; usadas.add(idxParcial); break; }
+    }
+  }
+
+  // Pasada 2: parciales, solo para lo que quedó sin asignar.
+  for (const [canonico, sinonimos] of canonicos) {
+    if (canonico in mapa) continue;
+    for (const sin of sinonimos) {
+      const idx = norm.findIndex((h, i) => !usadas.has(i) && h.includes(sin));
+      if (idx > -1) { mapa[canonico] = idx; usadas.add(idx); break; }
     }
     if (!(canonico in mapa)) mapa[canonico] = null;
   }

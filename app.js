@@ -255,12 +255,16 @@ function analizar() {
     forzados: estado.forzados,
     separarFX: true,
   });
+  // Si el extracto ya trae su línea de 4x1000, el motor de intereses la cuenta
+  // como plata real y suscripciones NO debe estimarla otra vez.
+  const gmfEnExtracto = interes.grupos.some((g) => g.clave === 'gmf');
   const subs = analizarSuscripciones(estado.transacciones, {
     excluidos: estado.excluidos,
     extras: estado.extras,
     comisionesFX: interes.cargosFX,
     tarifas,
     esCuentaDebito,
+    gmfEnExtracto,
   });
 
   // El interés que el extracto cobró de verdad. Manda sobre cualquier

@@ -25,8 +25,12 @@ import { parseNumero, parseTasa } from './numero.js';
 import { parseFecha } from './fecha.js';
 
 const RE_FECHA = /\b(\d{2}\/\d{2}\/\d{4})\b/;
-const RE_MONTO = /\$\s?(-?[\d.]+,\d{2})/g;
-const RE_CUOTAS = /\b(\d{1,3})\/(\d{1,3})\b(?=\s*\$)/;
+// El menos puede ir ANTES del peso ("-$ 500.000,00") o adentro ("$ -500.000,00"),
+// y algunos extractos marcan el abono con "CR" detrás. Con el `-?` solo adentro,
+// un pago recibido se leía +500.000 y se contaba como gasto: un error del doble
+// del monto en el neto.
+const RE_MONTO = /(-)?\s?\$\s?(-?[\d.]+,\d{2})(\s*CR\b)?/g;
+const RE_CUOTAS = /\b(\d{1,3})\/(\d{1,3})\b(?=\s*-?\s?\$)/;
 const RE_TASA = /([\d.]+,\d{1,4})\s*%/g;
 
 /**
@@ -42,18 +46,13 @@ const RE_TASA = /([\d.]+,\d{1,4})\s*%/g;
  * a nada más. Eso sí es inequívoco, y ningún cambio de maquetación lo rompe.
  */
 export function esBancolombiaVisa(lineas) {
-  let filas = 0;
   let inequivocas = 0;
   for (const l of lineas) {
     const f = parsearFila(l);
-    if (!f) continue;
-    filas++;
-    if (f.cuotas && f.tasaEA != null) inequivocas++;
+    if (f?.cuotas && f.tasaEA != null) inequivocas++;
     if (inequivocas >= 3) return true;
   }
-  // Un extracto sin nada diferido no tiene filas "inequívocas", pero igual
-  // trae muchas filas con fecha + varios montos, que el genérico lee mal.
-  return filas >= 8;
+  return false;
 }
 
 /**
@@ -70,16 +69,27 @@ export function parsearFila(linea) {
   const fecha = parseFecha(mf[1]);
   if (!fecha) return null;
 
-  const montos = [...linea.matchAll(RE_MONTO)].map((m) => ({ v: parseNumero(m[1]), i: m.index }));
-  if (montos.length < 2) return null;
+  const todos = [...linea.matchAll(RE_MONTO)].map((m) => {
+    const negativo = !!m[1] || !!m[3];  // menos delante del $, o "CR" detrás
+    const v = parseNumero(m[2]);
+    return { v: v == null ? null : (negativo ? -Math.abs(v) : v), i: m.index };
+  });
+  if (todos.length < 2) return null;
+
+  // Los montos de la tabla son SIEMPRE los últimos tres de la fila
+  // (movimiento, cuota, saldo). Anclamos al final y no al principio porque un
+  // "$" dentro de la descripción ("COMPRA USD $ 9,99 MERCADO") se colaba como
+  // montos[0] y corría todo un puesto: `valor` pasaba a ser el valor movimiento,
+  // o sea 36 veces la cuota real.
+  const montos = todos.length >= 3 ? todos.slice(-3) : todos;
 
   const tasas = [...linea.matchAll(RE_TASA)].map((m) => parseTasa(m[1]));
   const mc = linea.match(RE_CUOTAS);
 
-  // La descripción vive entre la fecha y el primer monto.
+  // La descripción vive entre la fecha y el primero de los montos de la tabla.
   const desde = mf.index + mf[1].length;
   const desc = linea.slice(desde, montos[0].i).replace(/\s+/g, ' ').trim();
-  if (!desc || /^[\d\s/.,-]*$/.test(desc)) return null; // sin texto real, no es un movimiento
+  if (!desc || /^[\d\s/.,$-]*$/.test(desc)) return null; // sin texto real, no es un movimiento
 
   const [valorMovimiento, valorCuota, saldoPendiente] = [
     montos[0]?.v ?? null,
@@ -162,7 +172,12 @@ export function periodoDelExtracto(lineas) {
  * importa es la de la plata que más debes, no el promedio simple de las filas.
  */
 export function tasaEADelExtracto(transacciones) {
-  const conTasa = transacciones.filter((t) => t.tasaEA > 0 && t.saldoPendiente > 0);
+  // `!= null` y no `> 0`: el filtro estaba escrito para botar los null, pero
+  // también botaba las filas al 0,0000 % — diferidos promocionales que SÍ son
+  // plata que debes y SÍ pesan en el promedio. Excluirlos aplicaba la tasa de
+  // la minoría cara a todo el saldo: un 0% de $10M junto a un 28% de $1M
+  // reportaba 28,75 % cuando la real es 2,61 %.
+  const conTasa = transacciones.filter((t) => t.tasaEA != null && t.saldoPendiente > 0);
   if (!conTasa.length) return null;
   const saldo = conTasa.reduce((a, t) => a + t.saldoPendiente, 0);
   if (saldo <= 0) return null;

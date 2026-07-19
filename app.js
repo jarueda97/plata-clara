@@ -11,6 +11,7 @@ import { iconoDe } from './src/datos/iconos.js';
 import { dibujarAmortizacion, leyenda } from './src/vista/grafico.js';
 import { analizarInteres, clasificarCargo, estimarEA, compararUsura } from './src/motor/interes.js';
 import { analizarDiferidos, interesPorPagar } from './src/motor/diferidos.js';
+import { analizarAvances } from './src/motor/avances.js';
 import { tasaEADelExtracto } from './src/parse/bancolombia-visa.js';
 import { analizarSuscripciones, identificarComercio, pareceRecurrente } from './src/motor/suscripciones.js';
 import { simularMinimo, simularCuotaFija, equivalencia } from './src/motor/minimo.js';
@@ -311,6 +312,7 @@ function pintarResultados() {
   pintarInteres(interes);
   pintarSubs(subs);
   pintarGolpe(interes, subs);
+  pintarAvances(analizarAvances(interes));
   pintarOculto(subs);
   pintarCategorias(subs);
   pintarDiferidos(estado.resultado.diferidos);
@@ -404,6 +406,33 @@ function pintarGolpe(interes, subs) {
     `Entre intereses y suscripciones se te fueron <strong>${formatoCOP(total)}</strong>` +
     (eq ? ` — unos ${eq.cantidad} ${eq.nombre}` : '') +
     `. Si el mes se repite igual, son <strong>${formatoCOP(anual)}</strong> al año.`;
+}
+
+function pintarAvances(a) {
+  const bloque = $('#bloque-avances');
+  if (!a) { bloque.hidden = true; return; }
+  bloque.hidden = false;
+
+  const veces = a.conteo > 1 ? `${a.conteo} avances` : 'un avance';
+  $('#av-titular').innerHTML =
+    `Sacar plata en efectivo te costó <span style="color:var(--pink)">${formatoPct(a.proporcionInstantanea, { decimales: 1 })}</span> al instante.`;
+  $('#av-meta').textContent =
+    `El avance es de los peores negocios de la tarjeta: arranca a cobrar interés desde el día uno, sin el mes de gracia de las compras, y encima cobra una comisión fija por sacarlo.`;
+
+  contarHasta($('#av-monto'), a.montoRetirado);
+  $('#av-monto-cap').textContent = `En ${veces} este mes.`;
+
+  contarHasta($('#av-costo'), a.costoEsteMes);
+  $('#av-costo-cap').innerHTML =
+    `<b>${formatoCOP(a.comisionTotal)}</b> de comisión` +
+    (a.interesTotal > 0 ? ` y <b>${formatoCOP(a.interesTotal)}</b> de intereses que ya corrieron` : '') +
+    `. Y el interés sigue corriendo hasta que lo pagues.`;
+
+  const g = $('#av-golpe');
+  g.hidden = false;
+  g.innerHTML =
+    `De cada <span class="hit">$100.000</span> que sacaste, <span class="hit">${formatoCOP(a.proporcionInstantanea * 100000, { decimales: 0 })}</span> ` +
+    `se fueron de una en cargos — antes de contar un solo día de interés futuro.`;
 }
 
 function pintarOculto(r) {

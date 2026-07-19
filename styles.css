@@ -307,6 +307,9 @@ td.r, th.r { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .fig-dif  { --glow: rgba(53,230,208,0.14); }
 .fig-dif .dot { background: var(--cyan); box-shadow: 0 0 9px var(--cyan); }
 .fig-dif .n   { color: var(--cyan); }
+.fig-av   { --glow: rgba(255,92,138,0.16); }
+.fig-av .dot { background: var(--pink); box-shadow: 0 0 9px var(--pink); }
+.fig-av .n   { color: var(--pink); }
 .fig .hd {
   display: flex; align-items: center; gap: 8px;
   font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;

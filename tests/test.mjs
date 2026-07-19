@@ -11,6 +11,7 @@ import { identificarComercio, analizarSuscripciones, calcularRecargos, mediana }
 import { simularMinimo, simularCuotaFija, equivalencia, compararConCuotaFija } from '../src/motor/minimo.js';
 import { parsearFila, esBancolombiaVisa, tasaEADelExtracto, periodoDelExtracto, transaccionesDeLineas } from '../src/parse/bancolombia-visa.js';
 import { analizarDiferidos, interesPorPagar, claveComercio } from '../src/motor/diferidos.js';
+import { analizarAvances } from '../src/motor/avances.js';
 import { lineasATransacciones } from '../src/parse/pdf.js';
 
 // --- Números --------------------------------------------------------------
@@ -936,4 +937,27 @@ test('claveComercio: si la limpieza vacía el nombre, no agrupa a ciegas', () =>
   const d = analizarDiferidos([mk('APP 845423'), mk('CO 998877')]);
   assert.equal(d.apiladas.length, 2, 'dos comercios distintos, no uno apilado');
   assert.equal(d.seApilan.length, 0);
+});
+
+test('avances: junta el retiro con sus cargos y saca el % instantáneo', () => {
+  // Sacar $500.000 y que cueste $38.700 (comisión + intereses del mes) es un
+  // 7,74% que se va de una, antes de contar el interés futuro. La app contaba
+  // esos cargos pero nunca los juntaba ni les ponía nombre.
+  const tx = [
+    { id: '1', valor: 500000, descripcion: 'AVANCE EN EFECTIVO CAJERO', fecha: new Date(2026, 0, 9) },
+    { id: '2', valor: 27500, descripcion: 'COMISION POR AVANCE', fecha: new Date(2026, 0, 9) },
+    { id: '3', valor: 11200, descripcion: 'INTERESES DE AVANCE', fecha: new Date(2026, 0, 28) },
+    { id: '4', valor: 26900, descripcion: 'NETFLIX.COM', fecha: new Date(2026, 0, 15) },
+  ];
+  const a = analizarAvances(analizarInteres(tx));
+  assert.equal(a.montoRetirado, 500000);
+  assert.equal(a.comisionTotal, 27500);
+  assert.equal(a.interesTotal, 11200);
+  assert.equal(a.costoEsteMes, 38700);
+  assert.ok(Math.abs(a.proporcionInstantanea - 0.0774) < 0.0001, `dio ${a.proporcionInstantanea}`);
+});
+
+test('avances: sin avances no hay bloque', () => {
+  const tx = [{ id: '1', valor: 26900, descripcion: 'NETFLIX.COM', fecha: new Date(2026, 0, 15) }];
+  assert.equal(analizarAvances(analizarInteres(tx)), null);
 });
